@@ -1,0 +1,117 @@
+# ============================================
+# PDV System — .gitignore
+# .NET 10 + Node.js/React + IDEs
+# ============================================
+
+# ─────────────────────────────────────────────
+# .NET / C#
+# ─────────────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+.vs/
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.DS_Store
+
+# EF Migrations lock / temp files
+*.db-shm
+*.db-wal
+
+# Build outputs
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.[Cc]ache/
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.log
+*.svclog
+
+# App-specific SQLite database (never commit the DB itself)
+Pdv.Backend/pdv.db
+Pdv.Backend/pdv.db-*
+Pdv.Backend/pdv-api.*.log
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+**/[Pp]ackages/
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+
+# ─────────────────────────────────────────────
+# Node.js / React / Vite / Frontend
+# ─────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Build output
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+
+# Env files (NEVER commit secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+
+# Misc
+.eslintcache
+*.tsbuildinfo
+.parcel-cache
+
+# ─────────────────────────────────────────────
+# OS
+# ─────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ─────────────────────────────────────────────
+# Security / Secrets (ALWAYS ignore)
+# ─────────────────────────────────────────────
+*.pfx
+*.p12
+*.key
+*.pem
+secrets.json
+appsettings.Production.json

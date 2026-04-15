@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<title>PDV System — Semana 1</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --surface2: #1c2030;
+    --border: #252a3a;
+    --border2: #2e3550;
+    --k: #7c6ff7;
+    --k-dim: #2d2a5e;
+    --k-mid: #4d47a8;
+    --p: #2fcf8f;
+    --p-dim: #0f3328;
+    --p-mid: #1a7a54;
+    --f: #f06c4a;
+    --f-dim: #3d1f14;
+    --f-mid: #9e3d22;
+    --all: #f5c842;
+    --all-dim: #3d3010;
+    --txt: #e8eaf0;
+    --txt2: #8890a8;
+    --txt3: #5a6080;
+    --red: #e24b4b;
+    --green: #2fcf8f;
+    --yellow: #f5c842;
+    --accent: #7c6ff7;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--txt);
+    font-family: 'IBM Plex Sans', sans-serif;
+    width: 1200px;
+    min-height: 100vh;
+    padding: 40px;
+  }
+
+  /* HEADER */
+  .doc-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .doc-title-block {}
+  .doc-badge {
+    display: inline-block;
+    background: var(--k-dim);
+    color: var(--k);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 3px;
+    margin-bottom: 8px;
+    border: 1px solid var(--k-mid);
+  }
+  .doc-title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -.02em;
+    color: var(--txt);
+    line-height: 1.1;
+  }
+  .doc-subtitle {
+    font-size: 13px;
+    color: var(--txt3);
+    margin-top: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .doc-meta {
+    text-align: right;
+  }
+  .meta-row {
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--txt3);
+    line-height: 1.8;
+  }
+  .meta-row span { color: var(--txt2); }
+
+  /* LEGEND */
+  .legend-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 28px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .legend-label {
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--txt3);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-right: 6px;
+  }
+  .leg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+  .leg-k { background: var(--k-dim); color: var(--k); border-color: var(--k-mid); }
+  .leg-p { background: var(--p-dim); color: var(--p); border-color: var(--p-mid); }
+  .leg-f { background: var(--f-dim); color: var(--f); border-color: var(--f-mid); }
+  .leg-all { background: var(--all-dim); color: var(--all); border-color: #7a6020; }
+  .leg-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* DAYS GRID */
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+
+  .day-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .day-header {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    text-align: center;
+  }
+  .day-name {
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--txt2);
+  }
+  .day-num {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--txt);
+    margin-top: 2px;
+  }
+  .day-tag {
+    font-size: 9px;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: .06em;
+    margin-top: 3px;
+    text-transform: uppercase;
+  }
+  .day-tag.focus { color: var(--accent); }
+  .day-tag.buffer { color: var(--txt3); }
+  .day-tag.sync { color: var(--yellow); }
+
+  .task-card {
+    border-radius: 6px;
+    padding: 10px 12px;
+    border: 1px solid;
+    flex: 1;
+  }
+  .task-card.k { background: var(--k-dim); border-color: var(--k-mid); }
+  .task-card.p { background: var(--p-dim); border-color: var(--p-mid); }
+  .task-card.f { background: var(--f-dim); border-color: var(--f-mid); }
+  .task-card.all { background: var(--all-dim); border-color: #7a6020; }
+
+  .task-owner {
+    font-size: 9px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .task-card.k .task-owner { color: var(--k); }
+  .task-card.p .task-owner { color: var(--p); }
+  .task-card.f .task-owner { color: var(--f); }
+  .task-card.all .task-owner { color: var(--all); }
+
+  .task-title {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--txt);
+    margin-bottom: 5px;
+  }
+
+  .task-desc {
+    font-size: 10.5px;
+    color: var(--txt2);
+    line-height: 1.5;
+  }
+
+  .task-code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    background: rgba(0,0,0,.25);
+    padding: 4px 6px;
+    border-radius: 3px;
+    margin-top: 6px;
+    color: var(--txt2);
+    display: block;
+    border: 1px solid rgba(255,255,255,.05);
+    word-break: break-all;
+  }
+
+  .priority-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .prio-high { background: var(--red); }
+  .prio-mid { background: var(--yellow); }
+  .prio-low { background: var(--green); }
+
+  .task-tag {
+    display: inline-block;
+    font-size: 9px;
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 1px 5px;
+    border-radius: 2px;
+    margin-top: 5px;
+    margin-right: 3px;
+  }
+  .tag-critical { background: rgba(226,75,75,.2); color: #f08080; border: 1px solid rgba(226,75,75,.3); }
+  .tag-db { background: rgba(47,207,143,.1); color: var(--p); border: 1px solid var(--p-mid); }
+  .tag-api { background: rgba(124,111,247,.1); color: var(--k); border: 1px solid var(--k-mid); }
+  .tag-ui { background: rgba(240,108,74,.1); color: var(--f); border: 1px solid var(--f-mid); }
+  .tag-security { background: rgba(245,200,66,.1); color: var(--all); border: 1px solid #7a6020; }
+
+  /* DIAGNOSIS SECTION */
+  .section-title {
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--txt3);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .diag-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .diag-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .diag-card-title {
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .diag-item {
+    display: flex;
+    gap: 7px;
+    align-items: flex-start;
+    margin-bottom: 5px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--txt2);
+  }
+  .diag-item .icon { flex-shrink: 0; margin-top: 1px; }
+  .ok { color: var(--green); }
+  .miss { color: var(--red); }
+  .warn { color: var(--yellow); }
+
+  /* FLOW SECTION */
+  .flow-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+  }
+  .flow-box {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 6px 10px;
+    text-align: center;
+    flex: 1;
+  }
+  .flow-box-label {
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    color: var(--txt2);
+    display: block;
+  }
+  .flow-box-sub {
+    font-size: 9px;
+    color: var(--txt3);
+    margin-top: 2px;
+    display: block;
+  }
+  .flow-arrow {
+    font-size: 10px;
+    color: var(--txt3);
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+
+  /* FOOTER */
+  .doc-footer {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-note {
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--txt3);
+  }
+
+  .week-badge {
+    background: var(--k-dim);
+    border: 1px solid var(--k-mid);
+    color: var(--k);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    padding: 4px 12px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="doc-title-block">
+    <div class="doc-badge">Sprint Planning — Documento Técnico</div>
+    <div class="doc-title">PDV System — Semana 1<br><span style="color:var(--txt3);font-weight:300">Fundação & Módulos Core</span></div>
+    <div class="doc-subtitle">Dias 1–7 &nbsp;/&nbsp; ASP.NET Core (.NET 10) + SQLite + EF Core</div>
+  </div>
+  <div class="doc-meta">
+    <div class="meta-row">Projeto: <span>Sistema de Vendas (ERP/PDV)</span></div>
+    <div class="meta-row">Objetivo: <span>Sistema funcional em 2 semanas</span></div>
+    <div class="meta-row">Stack back: <span>C# · ASP.NET Minimal API · EF Core</span></div>
+    <div class="meta-row">Stack front: <span>React · TypeScript · Vite</span></div>
+    <div class="meta-row">DB: <span>SQLite (dev) → PostgreSQL (prod)</span></div>
+  </div>
+</div>
+
+<div class="legend-bar">
+  <span class="legend-label">Responsável →</span>
+  <span class="leg leg-k"><span class="leg-dot"></span>Kauã — Backend</span>
+  <span class="leg leg-p"><span class="leg-dot"></span>Pedro — DB + Backend</span>
+  <span class="leg leg-f"><span class="leg-dot"></span>Kerlon — Frontend</span>
+  <span class="leg leg-all"><span class="leg-dot"></span>Todos</span>
+</div>
+
+<div class="section-title">Diagnóstico do projeto atual</div>
+
+<div class="diag-grid">
+  <div class="diag-card">
+    <div class="diag-card-title"><span class="ok">✓</span> Já implementado (sólido)</div>
+    <div class="diag-item"><span class="icon ok">✓</span> Domain model completo (8 entidades)</div>
+    <div class="diag-item"><span class="icon ok">✓</span> ServiceResult&lt;T&gt; pattern correto</div>
+    <div class="diag-item"><span class="icon ok">✓</span> Transações DB no SaleService</div>
+    <div class="diag-item"><span class="icon ok">✓</span> Estoque com InventoryMovement log</div>
+    <div class="diag-item"><span class="icon ok">✓</span> Multi-pagamento + cálculo de troco</div>
+    <div class="diag-item"><span class="icon ok">✓</span> Desconto em item + desconto na venda</div>
+    <div class="diag-item"><span class="icon ok">✓</span> Documento fiscal NFC-e simulado</div>
+    <div class="diag-item"><span class="icon ok">✓</span> CORS, OpenAPI, HealthCheck /health</div>
+    <div class="diag-item"><span class="icon ok">✓</span> Cancelamento de venda com estorno</div>
+  </div>
+  <div class="diag-card">
+    <div class="diag-card-title"><span class="miss">✗</span> Crítico — Semana 1</div>
+    <div class="diag-item"><span class="icon miss">✗</span> Sem autenticação (JWT Bearer)</div>
+    <div class="diag-item"><span class="icon miss">✗</span> Sem entidade User/Operator</div>
+    <div class="diag-item"><span class="icon miss">✗</span> EF usando EnsureCreated (perigoso)</div>
+    <div class="diag-item"><span class="icon miss">✗</span> Sem Category de produto</div>
+    <div class="diag-item"><span class="icon miss">✗</span> Sem entidade Customer (só documento)</div>
+    <div class="diag-item"><span class="icon miss">✗</span> Sem Supplier (Fornecedor)</div>
+    <div class="diag-item"><span class="icon miss">✗</span> Sem entrada de estoque</div>
+    <div class="diag-item"><span class="icon miss">✗</span> Sem paginação nas listas</div>
+    <div class="diag-item"><span class="icon miss">✗</span> Race condition no número da venda</div>
+  </div>
+  <div class="diag-card">
+    <div class="diag-card-title"><span class="warn">!</span> Importante — Semana 2</div>
+    <div class="diag-item"><span class="icon warn">!</span> Sem endpoints de relatório</div>
+    <div class="diag-item"><span class="icon warn">!</span> Sem dashboard stats endpoint</div>
+    <div class="diag-item"><span class="icon warn">!</span> Sem rate limiting</div>
+    <div class="diag-item"><span class="icon warn">!</span> Logging sem structured logs</div>
+    <div class="diag-item"><span class="icon warn">!</span> SQLite → Postgres pra prod</div>
+    <div class="diag-item"><span class="icon warn">!</span> Sem testes automatizados</div>
+    <div class="diag-item"><span class="icon warn">!</span> Seed de dados insuficiente</div>
+  </div>
+</div>
+
+<div class="section-title">Fluxo principal a validar ao fim da Semana 1</div>
+
+<div class="flow-bar">
+  <div class="flow-step">
+    <div class="flow-box">
+      <span class="flow-box-label">Login</span>
+      <span class="flow-box-sub">POST /api/auth/login</span>
+    </div>
+    <div class="flow-arrow">→</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-box">
+      <span class="flow-box-label">Abrir Caixa</span>
+      <span class="flow-box-sub">POST /api/cash-sessions</span>
+    </div>
+    <div class="flow-arrow">→</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-box">
+      <span class="flow-box-label">Scan Produto</span>
+      <span class="flow-box-sub">GET /api/products/barcode/{code}</span>
+    </div>
+    <div class="flow-arrow">→</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-box">
+      <span class="flow-box-label">Registrar Venda</span>
+      <span class="flow-box-sub">POST /api/sales</span>
+    </div>
+    <div class="flow-arrow">→</div>
+  </div>
+  <div class="flow-step">
+    <div class="flow-box">
+      <span class="flow-box-label">Fechar Caixa</span>
+      <span class="flow-box-sub">POST /api/cash-sessions/{id}/close</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-title">Tarefas por dia — Semana 1</div>
+
+<div class="days-grid">
+
+  <!-- DIA 1 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Segunda</div>
+      <div class="day-num">Dia 1</div>
+      <div class="day-tag focus">Auth Day</div>
+    </div>
+    <div class="task-card k">
+      <div class="task-owner">Kauã</div>
+      <div class="task-title">User entity + JWT Auth</div>
+      <div class="task-desc">Criar domínio User com Id, Username, PasswordHash, Role (Operador/Gerente), IsActive. Adicionar JwtBearer no Program.cs. Endpoint POST /api/auth/login retornando JWT.</div>
+      <code class="task-code">dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+dotnet add package BCrypt.Net-Next</code>
+      <span class="task-tag tag-critical">crítico</span>
+      <span class="task-tag tag-security">segurança</span>
+      <span class="task-tag tag-api">API</span>
+    </div>
+    <div class="task-card p">
+      <div class="task-owner">Pedro</div>
+      <div class="task-title">EF Migrations — substituir EnsureCreated</div>
+      <div class="task-desc">Adicionar EF Tools, rodar primeira migration. Mudar DatabaseSeeder para db.Database.MigrateAsync(). Nunca mais EnsureCreated em prod.</div>
+      <code class="task-code">dotnet add package Microsoft.EntityFrameworkCore.Tools
+dotnet ef migrations add InitialCreate</code>
+      <span class="task-tag tag-critical">crítico</span>
+      <span class="task-tag tag-db">DB</span>
+    </div>
+    <div class="task-card f">
+      <div class="task-owner">Kerlon</div>
+      <div class="task-title">Setup React + roteamento</div>
+      <div class="task-desc">Vite + React + TypeScript. Instalar React Router, Axios. Proxy pra localhost:5235. Estrutura: /pages, /components, /services, /contexts.</div>
+      <code class="task-code">npm create vite@latest frontend -- --template react-ts
+npm install react-router-dom axios</code>
+      <span class="task-tag tag-ui">UI</span>
+    </div>
+  </div>
+
+  <!-- DIA 2 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Terça</div>
+      <div class="day-num">Dia 2</div>
+      <div class="day-tag focus">Entidades</div>
+    </div>
+    <div class="task-card k">
+      <div class="task-owner">Kauã</div>
+      <div class="task-title">Category CRUD + Customer CRUD</div>
+      <div class="task-desc">Category: Id, Name, IsActive. Adicionar CategoryId opcional em Product. Customer: Id, Name, Document (CPF/CNPJ), Phone, Email. SaleService: associar Customer real pelo documento.</div>
+      <code class="task-code">GET/POST  /api/categories
+PUT       /api/categories/{id}
+GET/POST  /api/customers
+GET       /api/customers/document/{doc}</code>
+      <span class="task-tag tag-api">API</span>
+    </div>
+    <div class="task-card p">
+      <div class="task-owner">Pedro</div>
+      <div class="task-title">Migration: User + Category + Customer</div>
+      <div class="task-desc">Adicionar Users, Categories, Customers ao DbContext. Índices: unique em User.Username, unique em Customer.Document. FK nullable de Product para Category.</div>
+      <code class="task-code">dotnet ef migrations add AddUserCategoryCustomer
+dotnet ef database update</code>
+      <span class="task-tag tag-db">DB</span>
+    </div>
+    <div class="task-card f">
+      <div class="task-owner">Kerlon</div>
+      <div class="task-title">Tela de login + Axios interceptor</div>
+      <div class="task-desc">Form de login. Ao autenticar, salvar JWT no localStorage e injetar em todo request. Rota protegida: sem token → redireciona para /login.</div>
+      <span class="task-tag tag-ui">UI</span>
+      <span class="task-tag tag-security">segurança</span>
+    </div>
+  </div>
+
+  <!-- DIA 3 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Quarta</div>
+      <div class="day-num">Dia 3</div>
+      <div class="day-tag focus">Fornecedor</div>
+    </div>
+    <div class="task-card k">
+      <div class="task-owner">Kauã</div>
+      <div class="task-title">Supplier CRUD (Fornecedor)</div>
+      <div class="task-desc">Entidade Supplier: Id, CompanyName, TradeName, Document (CNPJ), Phone, Email, IsActive. CRUD completo. Validar CNPJ no service.</div>
+      <code class="task-code">GET/POST  /api/suppliers
+PUT       /api/suppliers/{id}
+GET       /api/suppliers/{id}</code>
+      <span class="task-tag tag-api">API</span>
+    </div>
+    <div class="task-card p">
+      <div class="task-owner">Pedro</div>
+      <div class="task-title">Migration: Supplier + PurchaseEntry</div>
+      <div class="task-desc">Supplier, PurchaseEntry (cabeçalho da nota de entrada) e PurchaseItem (itens). PurchaseEntry: Id, SupplierId, InvoiceNumber, TotalCost, EnteredAt, OperatorName.</div>
+      <code class="task-code">dotnet ef migrations add AddSupplierAndPurchase</code>
+      <span class="task-tag tag-db">DB</span>
+    </div>
+    <div class="task-card f">
+      <div class="task-owner">Kerlon</div>
+      <div class="task-title">Abertura / fechamento de caixa</div>
+      <div class="task-desc">Tela de abertura: TerminalId, OperatorName, OpeningAmount. Tela de fechamento: mostrar ExpectedClosingAmount, campo ClosingAmount e diferença em tempo real.</div>
+      <span class="task-tag tag-ui">UI</span>
+    </div>
+  </div>
+
+  <!-- DIA 4 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Quinta</div>
+      <div class="day-num">Dia 4</div>
+      <div class="day-tag focus">Estoque</div>
+    </div>
+    <div class="task-card k">
+      <div class="task-owner">Kauã</div>
+      <div class="task-title">Entrada de estoque (PurchaseEntry)</div>
+      <div class="task-desc">POST /api/purchase-entries: recebe SupplierId, lista de itens (ProductId, Quantity, UnitCost). Por item: incrementar StockQuantity + salvar InventoryMovement Type=PurchaseEntry. Tudo em transação.</div>
+      <code class="task-code">POST /api/purchase-entries
+GET  /api/purchase-entries
+GET  /api/purchase-entries/{id}</code>
+      <span class="task-tag tag-api">API</span>
+      <span class="task-tag tag-db">DB</span>
+    </div>
+    <div class="task-card p">
+      <div class="task-owner">Pedro</div>
+      <div class="task-title">Índices de performance</div>
+      <div class="task-desc">Verificar e adicionar índices: Customer.Document, InventoryMovement.ProductId, Sale.CashSessionId. Testar com EXPLAIN QUERY PLAN no SQLite.</div>
+      <code class="task-code">-- Verificar plano de execução
+EXPLAIN QUERY PLAN
+SELECT * FROM Sales WHERE CashSessionId = ?;</code>
+      <span class="task-tag tag-db">DB</span>
+    </div>
+    <div class="task-card f">
+      <div class="task-owner">Kerlon</div>
+      <div class="task-title">Frente de caixa — PDV screen</div>
+      <div class="task-desc">TELA PRINCIPAL. Campo barcode (Enter = busca). Carrinho de itens com qtd editável e desconto. Seção de pagamento multi-método. Botão finalizar (POST /api/sales). Exibir troco.</div>
+      <span class="task-tag tag-ui">UI</span>
+      <span class="task-tag tag-critical">principal</span>
+    </div>
+  </div>
+
+  <!-- DIA 5 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Sexta</div>
+      <div class="day-num">Dia 5</div>
+      <div class="day-tag focus">Qualidade</div>
+    </div>
+    <div class="task-card k">
+      <div class="task-owner">Kauã</div>
+      <div class="task-title">Fix race condition nº venda + paginação</div>
+      <div class="task-desc">Race condition: MAX+1 com concorrência pode duplicar. Solução: usar AutoIncrement nativo SQLite ou tabela de contador com lock. Paginação: parâmetros ?page=1&pageSize=20, retornar PagedResponse&lt;T&gt; com TotalCount.</div>
+      <code class="task-code">record PagedResponse&lt;T&gt;(
+  IReadOnlyList&lt;T&gt; Items, int Page,
+  int PageSize, int TotalCount,
+  int TotalPages);</code>
+      <span class="task-tag tag-api">API</span>
+    </div>
+    <div class="task-card p">
+      <div class="task-owner">Pedro</div>
+      <div class="task-title">Sequência ou auto-increment p/ nº venda</div>
+      <div class="task-desc">Criar tabela SaleSequence com único registro e row-level lock, ou configurar EF para usar AUTOINCREMENT nativo. Garantir unicidade sem race condition.</div>
+      <span class="task-tag tag-db">DB</span>
+      <span class="task-tag tag-critical">crítico</span>
+    </div>
+    <div class="task-card f">
+      <div class="task-owner">Kerlon</div>
+      <div class="task-title">Tela de produtos (CRUD)</div>
+      <div class="task-desc">Listagem paginada com busca. Modal de criar/editar produto (barcode, nome, categoria, preço, estoque mínimo). Botão de ajuste manual de estoque com campo de motivo.</div>
+      <span class="task-tag tag-ui">UI</span>
+    </div>
+  </div>
+
+  <!-- DIA 6 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Sábado</div>
+      <div class="day-num">Dia 6</div>
+      <div class="day-tag sync">Sync</div>
+    </div>
+    <div class="task-card all">
+      <div class="task-owner">Todos — Sync + Integração</div>
+      <div class="task-title">Teste do fluxo completo</div>
+      <div class="task-desc">Reunião de alinhamento. Testar end-to-end: login → abrir caixa → scan produto → vender com múltiplos pagamentos → fechar caixa. Documentar bugs. Priorizar pra Semana 2.</div>
+      <div style="margin-top:8px">
+        <div style="font-size:10px;color:var(--txt3);margin-bottom:4px">Checklist de validação:</div>
+        <div class="diag-item"><span class="icon">□</span> JWT funciona nos endpoints protegidos</div>
+        <div class="diag-item"><span class="icon">□</span> Estoque atualiza corretamente na venda</div>
+        <div class="diag-item"><span class="icon">□</span> Cancelamento estorna estoque</div>
+        <div class="diag-item"><span class="icon">□</span> Caixa não abre se já existe um aberto</div>
+        <div class="diag-item"><span class="icon">□</span> Entrada de estoque incrementa produto</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIA 7 -->
+  <div class="day-col">
+    <div class="day-header">
+      <div class="day-name">Domingo</div>
+      <div class="day-num">Dia 7</div>
+      <div class="day-tag buffer">Buffer</div>
+    </div>
+    <div class="task-card k">
+      <div class="task-owner">Kauã</div>
+      <div class="task-title">Refactor + edge cases</div>
+      <div class="task-desc">Revisar todos os services. Garantir que todos os erros retornam como ProblemDetails com status codes corretos. Cobrir edge cases identificados no sync.</div>
+      <code class="task-code">// Status codes corretos:
+201 Created → POST bem-sucedido
+409 Conflict → regra violada
+422 → validação falhou
+404 → entidade não encontrada</code>
+      <span class="task-tag tag-api">API</span>
+    </div>
+    <div class="task-card p">
+      <div class="task-owner">Pedro</div>
+      <div class="task-title">Seed de dados + README setup</div>
+      <div class="task-desc">Expandir DatabaseSeeder com mais produtos, categorias, um usuário admin e um usuário operador padrão. Atualizar README com instrução de setup do zero.</div>
+      <span class="task-tag tag-db">DB</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="doc-footer">
+  <div class="footer-note">PDV System · Sprint Semana 1 de 2 · Kauã (back) · Pedro (DB+back) · Kerlon (front)</div>
+  <div class="footer-note" style="color:var(--k)">→ Continua na Semana 2: Relatórios · Dashboard · Polish · Demo</div>
+</div>
+
+</body>
+</html>

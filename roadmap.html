@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDV System — Roadmap Técnico</title>
+<meta name="description" content="Roadmap técnico do Sistema PDV — Sprint 1 e 2 — Kauã, Pedro, Kerlon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ─── TOKENS ─────────────────────────────────── */
+  :root {
+    --bg:        #070a12;
+    --bg2:       #0c1020;
+    --glass:     rgba(255,255,255,0.03);
+    --glass-h:   rgba(255,255,255,0.06);
+    --border:    rgba(255,255,255,0.08);
+    --border-h:  rgba(255,255,255,0.15);
+
+    --k:         #7c6ff7;
+    --k-soft:    rgba(124,111,247,0.12);
+    --k-glow:    rgba(124,111,247,0.3);
+    --p:         #2fcf8f;
+    --p-soft:    rgba(47,207,143,0.12);
+    --p-glow:    rgba(47,207,143,0.3);
+    --f:         #f06c4a;
+    --f-soft:    rgba(240,108,74,0.12);
+    --f-glow:    rgba(240,108,74,0.3);
+    --all:       #f5c842;
+    --all-soft:  rgba(245,200,66,0.12);
+
+    --txt:       #e8eaf0;
+    --txt2:      #8890a8;
+    --txt3:      #454d68;
+    --red:       #e24b4b;
+    --green:     #2fcf8f;
+    --yellow:    #f5c842;
+
+    --radius:    12px;
+    --radius-sm: 6px;
+    --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ─── RESET & BASE ───────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--txt);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── BACKGROUND NOISE & GLOW ────────────────── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(124,111,247,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(47,207,143,0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── GRID OVERLAY ───────────────────────────── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 48px 40px 80px;
+  }
+
+  /* ─── HEADER ─────────────────────────────────── */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 32px;
+    margin-bottom: 56px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-left { flex: 1; }
+
+  .sys-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--k-soft);
+    border: 1px solid rgba(124,111,247,0.3);
+    color: var(--k);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+  }
+  .sys-label::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--k);
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.7); }
+  }
+
+  .header-title {
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--txt);
+  }
+  .header-title .accent {
+    background: linear-gradient(135deg, var(--k) 0%, #a28bf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-subtitle {
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--txt2);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.6;
+  }
+
+  /* ─── HEADER META ────────────────────────────── */
+  .header-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 200px;
+  }
+  .meta-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .meta-pill .ml { color: var(--txt3); min-width: 48px; }
+  .meta-pill .mv { color: var(--txt2); font-weight: 500; }
+  .meta-pill .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ─── TEAM SECTION ───────────────────────────── */
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .team-card {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    transition: border-color var(--transition), background var(--transition), transform var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+  .team-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .team-card.k::before { background: linear-gradient(90deg, var(--k), transparent); }
+  .team-card.p::before { background: linear-gradient(90deg, var(--p), transparent); }
+  .team-card.f::before { background: linear-gradient(90deg, var(--f), transparent); }
+  .team-card:hover {
+    border-color: var(--border-h);
+    background: var(--glass-h);
+    transform: translateY(-2px);
+  }
+  .team-card.k:hover { box-shadow: 0 8px 32px var(--k-glow); }
+  .team-card.p:hover { box-shadow: 0 8px 32px var(--p-glow); }
+  .team-card.f:hover { box-shadow: 0 8px 32px var(--f-glow); }
+
+  .tc-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .tc-avatar {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .team-card.k .tc-avatar { background: var(--k-soft); color: var(--k); }
+  .team-card.p .tc-avatar { background: var(--p-soft); color: var(--p); }
+  .team-card.f .tc-avatar { background: var(--f-soft); color: var(--f); }
+
+  .tc-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--txt);
+  }
+  .tc-handle {
+    font-size: 11px;
+    color: var(--txt3);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+
+  .tc-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .tc-role {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 3px 7px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .team-card.k .tc-role { background: var(--k-soft); color: var(--k); border: 1px solid rgba(124,111,247,0.25); }
+  .team-card.p .tc-role { background: var(--p-soft); color: var(--p); border: 1px solid rgba(47,207,143,0.25); }
+  .team-card.f .tc-role { background: var(--f-soft); color: var(--f); border: 1px solid rgba(240,108,74,0.25); }
+
+  /* ─── SECTION HEADER ─────────────────────────── */
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--txt3);
+    margin-bottom: 20px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── TABS ───────────────────────────────────── */
+  .tabs-nav {
+    display: flex;
+    gap: 4px;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 40px;
+    width: fit-content;
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 9px 22px;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--txt2);
+    transition: all var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tab-btn:hover { color: var(--txt); background: var(--glass-h); }
+  .tab-btn.active {
+    background: rgba(124,111,247,0.15);
+    color: var(--k);
+    box-shadow: 0 0 0 1px rgba(124,111,247,0.3);
+  }
+  .tab-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.7;
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ─── DIAGNOSTICS GRID ───────────────────────── */
+  .diag-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .diag-card {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .diag-title {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--txt);
+  }
+
+  .diag-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--txt2);
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .diag-row:last-child { border-bottom: none; }
+  .diag-icon { flex-shrink: 0; font-size: 12px; margin-top: 1px; }
+  .ok { color: var(--green); }
+  .miss { color: var(--red); }
+  .warn { color: var(--yellow); }
+
+  /* ─── FLOW BAR ───────────────────────────────── */
+  .flow-bar {
+    display: flex;
+    align-items: center;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 24px;
+    margin-bottom: 40px;
+    gap: 0;
+    overflow-x: auto;
+  }
+  .flow-step {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 120px;
+  }
+  .flow-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    flex: 1;
+    text-align: center;
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+  .flow-box:hover {
+    border-color: rgba(124,111,247,0.4);
+    box-shadow: 0 0 16px var(--k-glow);
+  }
+  .fb-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--txt);
+    display: block;
+  }
+  .fb-sub {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--txt3);
+    display: block;
+    margin-top: 3px;
+  }
+  .flow-arrow {
+    color: var(--txt3);
+    font-size: 12px;
+    padding: 0 10px;
+    flex-shrink: 0;
+  }
+
+  /* ─── DAYS GRID ──────────────────────────────── */
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .day-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .day-header {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    text-align: center;
+  }
+  .day-name {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--txt3);
+  }
+  .day-num {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--txt);
+    margin: 3px 0;
+  }
+  .day-tag {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .day-tag.focus  { color: var(--k); }
+  .day-tag.sync   { color: var(--yellow); }
+  .day-tag.buffer { color: var(--txt3); }
+  .day-tag.reports{ color: var(--p); }
+  .day-tag.polish { color: var(--f); }
+  .day-tag.tests  { color: var(--red); }
+  .day-tag.demo   { color: var(--k); }
+
+  /* ─── TASK CARDS ─────────────────────────────── */
+  .task-card {
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    border: 1px solid;
+    flex: 1;
+    transition: transform var(--transition), box-shadow var(--transition);
+  }
+  .task-card:hover { transform: translateY(-2px); }
+
+  .task-card.k {
+    background: var(--k-soft);
+    border-color: rgba(124,111,247,0.25);
+  }
+  .task-card.k:hover { box-shadow: 0 6px 20px var(--k-glow); }
+  .task-card.p {
+    background: var(--p-soft);
+    border-color: rgba(47,207,143,0.25);
+  }
+  .task-card.p:hover { box-shadow: 0 6px 20px var(--p-glow); }
+  .task-card.f {
+    background: var(--f-soft);
+    border-color: rgba(240,108,74,0.25);
+  }
+  .task-card.f:hover { box-shadow: 0 6px 20px var(--f-glow); }
+  .task-card.all {
+    background: var(--all-soft);
+    border-color: rgba(245,200,66,0.25);
+  }
+
+  .task-owner {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .task-card.k .task-owner { color: var(--k); }
+  .task-card.p .task-owner { color: var(--p); }
+  .task-card.f .task-owner { color: var(--f); }
+  .task-card.all .task-owner { color: var(--all); }
+
+  .task-title {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--txt);
+    margin-bottom: 6px;
+  }
+  .task-desc {
+    font-size: 10.5px;
+    color: var(--txt2);
+    line-height: 1.55;
+  }
+  .task-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    background: rgba(0,0,0,0.3);
+    padding: 6px 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+    color: var(--txt2);
+    display: block;
+    border: 1px solid rgba(255,255,255,0.06);
+    white-space: pre;
+    overflow: hidden;
+  }
+  .task-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .tag {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+    border: 1px solid;
+  }
+  .tag-critical { background: rgba(226,75,75,0.15); color: #f08080; border-color: rgba(226,75,75,0.3); }
+  .tag-db  { background: var(--p-soft); color: var(--p); border-color: rgba(47,207,143,0.3); }
+  .tag-api { background: var(--k-soft); color: var(--k); border-color: rgba(124,111,247,0.3); }
+  .tag-ui  { background: var(--f-soft); color: var(--f); border-color: rgba(240,108,74,0.3); }
+  .tag-sec { background: var(--all-soft); color: var(--all); border-color: rgba(245,200,66,0.3); }
+  .tag-perf { background: rgba(245,200,66,0.1); color: var(--all); border-color: rgba(245,200,66,0.25); }
+
+  /* ─── CHECKLIST ITEMS ────────────────────────── */
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 12px;
+    color: var(--txt2);
+    line-height: 1.4;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-box {
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--txt3);
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .check-box:hover { border-color: var(--k); }
+  .check-item.done .check-box {
+    background: var(--k-soft);
+    border-color: var(--k);
+  }
+  .check-item.done .check-box::after {
+    content: '✓';
+    color: var(--k);
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .check-item.done .check-text { color: var(--txt3); text-decoration: line-through; }
+
+  /* ─── ENDPOINTS GRID ─────────────────────────── */
+  .ep-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 40px;
+  }
+  .ep-card {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .ep-title {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--txt3);
+    margin-bottom: 12px;
+  }
+  .ep-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .ep-method {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .m-get  { background: rgba(47,207,143,0.15); color: var(--p); }
+  .m-post { background: rgba(124,111,247,0.15); color: var(--k); }
+  .m-put  { background: rgba(240,108,74,0.15); color: var(--f); }
+  .ep-path { font-size: 10.5px; font-family: 'JetBrains Mono', monospace; color: var(--txt2); line-height: 1.4; }
+  .ep-desc { font-size: 9.5px; color: var(--txt3); margin-top: 2px; }
+
+  /* ─── DELIVERY GRID ──────────────────────────── */
+  .delivery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .delivery-card {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .delivery-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--txt);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .delivery-title .dtag {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .dtag-k { background: var(--k-soft); color: var(--k); }
+  .dtag-p { background: var(--p-soft); color: var(--p); }
+  .dtag-f { background: var(--f-soft); color: var(--f); }
+  .dtag-all { background: var(--all-soft); color: var(--all); }
+
+  /* ─── DEMO STEPS ─────────────────────────────── */
+  .demo-bar {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--k);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 40px;
+  }
+  .demo-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--k);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .demo-steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .demo-step {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    transition: border-color var(--transition);
+  }
+  .demo-step:hover { border-color: rgba(124,111,247,0.4); }
+  .demo-n {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--k);
+    font-size: 12px;
+  }
+  .demo-txt { color: var(--txt2); }
+  .demo-arr { color: var(--txt3); font-size: 12px; }
+
+  /* ─── STATUS BADGES ──────────────────────────── */
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .status-card {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .sc-val {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--txt);
+    line-height: 1;
+  }
+  .sc-label {
+    font-size: 11px;
+    color: var(--txt2);
+    margin-top: 2px;
+  }
+  .sc-sub {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--txt3);
+  }
+  .sc-bar {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .sc-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s ease;
+  }
+
+  /* ─── LEGEND BAR ─────────────────────────────── */
+  .legend-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .legend-label {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--txt3);
+    letter-spacing: 0.08em;
+    margin-right: 4px;
+  }
+  .leg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid;
+    cursor: default;
+    transition: transform var(--transition);
+  }
+  .leg:hover { transform: translateY(-1px); }
+  .leg-k { background: var(--k-soft); color: var(--k); border-color: rgba(124,111,247,0.3); }
+  .leg-p { background: var(--p-soft); color: var(--p); border-color: rgba(47,207,143,0.3); }
+  .leg-f { background: var(--f-soft); color: var(--f); border-color: rgba(240,108,74,0.3); }
+  .leg-all { background: var(--all-soft); color: var(--all); border-color: rgba(245,200,66,0.3); }
+  .leg-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* ─── FOOTER ─────────────────────────────────── */
+  .footer {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .footer-note {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--txt3);
+  }
+  .footer-link {
+    color: var(--k);
+    text-decoration: none;
+  }
+  .footer-link:hover { text-decoration: underline; }
+
+  /* ─── SCROLLBAR ──────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-h); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════ -->
+  <header class="header">
+    <div class="header-left">
+      <div class="sys-label">PDV System · Roadmap Técnico</div>
+      <h1 class="header-title">Sistema de <span class="accent">Ponto de Venda</span><br>ERP / PDV</h1>
+      <p class="header-subtitle">
+        Sprint 1–2 &nbsp;/&nbsp; ASP.NET Core 10 · EF Core · SQLite → PostgreSQL · React · TypeScript
+      </p>
+    </div>
+    <div class="header-meta">
+      <div class="meta-pill">
+        <span class="ml">Stack</span>
+        <span class="dot" style="background:var(--k)"></span>
+        <span class="mv">.NET 10 + React</span>
+      </div>
+      <div class="meta-pill">
+        <span class="ml">BD dev</span>
+        <span class="dot" style="background:var(--p)"></span>
+        <span class="mv">SQLite + EF Core</span>
+      </div>
+      <div class="meta-pill">
+        <span class="ml">BD prod</span>
+        <span class="dot" style="background:var(--p)"></span>
+        <span class="mv">PostgreSQL</span>
+      </div>
+      <div class="meta-pill">
+        <span class="ml">Prazo</span>
+        <span class="dot" style="background:var(--all)"></span>
+        <span class="mv">2 sprints / 14 dias</span>
+      </div>
+      <div class="meta-pill">
+        <span class="ml">Status</span>
+        <span class="dot" style="background:var(--green); animation:pulse 2s infinite"></span>
+        <span class="mv">Semana 1 — Em andamento</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ TEAM ════════════════════════════════════════════════ -->
+  <div class="section-label">Time & responsabilidades</div>
+  <div class="team-grid">
+    <div class="team-card k">
+      <div class="tc-top">
+        <div class="tc-avatar">K</div>
+        <div>
+          <div class="tc-name">Kauã</div>
+          <div class="tc-handle">@Kaua-KGzin · @KGzin-KAua</div>
+        </div>
+      </div>
+      <div class="tc-roles">
+        <span class="tc-role">Tech Lead</span>
+        <span class="tc-role">Architect</span>
+        <span class="tc-role">Backend</span>
+        <span class="tc-role">Security Eng</span>
+        <span class="tc-role">QA</span>
+        <span class="tc-role">DevOps</span>
+      </div>
+    </div>
+    <div class="team-card p">
+      <div class="tc-top">
+        <div class="tc-avatar">P</div>
+        <div>
+          <div class="tc-name">Pedro</div>
+          <div class="tc-handle">DB Engineer</div>
+        </div>
+      </div>
+      <div class="tc-roles">
+        <span class="tc-role">Database Eng</span>
+        <span class="tc-role">Backend</span>
+        <span class="tc-role">Migrations</span>
+        <span class="tc-role">Performance</span>
+      </div>
+    </div>
+    <div class="team-card f">
+      <div class="tc-top">
+        <div class="tc-avatar">F</div>
+        <div>
+          <div class="tc-name">Kerlon</div>
+          <div class="tc-handle">Frontend Lead</div>
+        </div>
+      </div>
+      <div class="tc-roles">
+        <span class="tc-role">Frontend</span>
+        <span class="tc-role">UX/UI Designer</span>
+        <span class="tc-role">React</span>
+        <span class="tc-role">TypeScript</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STATUS CARDS ════════════════════════════════════════ -->
+  <div class="section-label">Diagnóstico atual do projeto</div>
+  <div class="status-grid">
+    <div class="status-card">
+      <span class="sc-val" style="color:var(--green)">9</span>
+      <span class="sc-label">Módulos implementados e sólidos</span>
+      <span class="sc-sub">Domain · Transactions · Fiscal · Stock · Multi-pag.</span>
+      <div class="sc-bar"><div class="sc-bar-fill" style="width:64%;background:var(--green)"></div></div>
+    </div>
+    <div class="status-card">
+      <span class="sc-val" style="color:var(--red)">9</span>
+      <span class="sc-label">Críticos pendentes — Sprint 1</span>
+      <span class="sc-sub">JWT · User · Migrations · Category · Paginação</span>
+      <div class="sc-bar"><div class="sc-bar-fill" style="width:64%;background:var(--red)"></div></div>
+    </div>
+    <div class="status-card">
+      <span class="sc-val" style="color:var(--yellow)">7</span>
+      <span class="sc-label">Planejados — Sprint 2</span>
+      <span class="sc-sub">Relatórios · Dashboard · Rate Limit · Logging</span>
+      <div class="sc-bar"><div class="sc-bar-fill" style="width:50%;background:var(--yellow)"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ DIAG CARDS ══════════════════════════════════════════ -->
+  <div class="diag-grid">
+    <div class="diag-card">
+      <div class="diag-title"><span class="ok">✓</span> Já implementado (sólido)</div>
+      <div class="diag-row"><span class="diag-icon ok">✓</span> Domain model completo (8 entidades)</div>
+      <div class="diag-row"><span class="diag-icon ok">✓</span> ServiceResult&lt;T&gt; pattern correto</div>
+      <div class="diag-row"><span class="diag-icon ok">✓</span> Transações DB no SaleService</div>
+      <div class="diag-row"><span class="diag-icon ok">✓</span> Estoque com InventoryMovement log</div>
+      <div class="diag-row"><span class="diag-icon ok">✓</span> Multi-pagamento + cálculo de troco</div>
+      <div class="diag-row"><span class="diag-icon ok">✓</span> Desconto em item + desconto na venda</div>
+      <div class="diag-row"><span class="diag-icon ok">✓</span> Documento fiscal NFC-e simulado</div>
+      <div class="diag-row"><span class="diag-icon ok">✓</span> CORS, OpenAPI, HealthCheck /health</div>
+      <div class="diag-row"><span class="diag-icon ok">✓</span> Cancelamento de venda com estorno</div>
+    </div>
+    <div class="diag-card">
+      <div class="diag-title"><span class="miss">✗</span> Críticos — Sprint 1</div>
+      <div class="diag-row"><span class="diag-icon miss">✗</span> Sem autenticação (JWT Bearer)</div>
+      <div class="diag-row"><span class="diag-icon miss">✗</span> Sem entidade User/Operator</div>
+      <div class="diag-row"><span class="diag-icon miss">✗</span> EF usando EnsureCreated (perigoso)</div>
+      <div class="diag-row"><span class="diag-icon miss">✗</span> Sem Category de produto</div>
+      <div class="diag-row"><span class="diag-icon miss">✗</span> Sem entidade Customer (só documento)</div>
+      <div class="diag-row"><span class="diag-icon miss">✗</span> Sem Supplier (Fornecedor)</div>
+      <div class="diag-row"><span class="diag-icon miss">✗</span> Sem entrada de estoque</div>
+      <div class="diag-row"><span class="diag-icon miss">✗</span> Sem paginação nas listas</div>
+      <div class="diag-row"><span class="diag-icon miss">✗</span> Race condition no número da venda</div>
+    </div>
+    <div class="diag-card">
+      <div class="diag-title"><span class="warn">!</span> Planejados — Sprint 2</div>
+      <div class="diag-row"><span class="diag-icon warn">!</span> Sem endpoints de relatório</div>
+      <div class="diag-row"><span class="diag-icon warn">!</span> Sem dashboard stats endpoint</div>
+      <div class="diag-row"><span class="diag-icon warn">!</span> Sem rate limiting</div>
+      <div class="diag-row"><span class="diag-icon warn">!</span> Logging sem structured logs</div>
+      <div class="diag-row"><span class="diag-icon warn">!</span> SQLite → PostgreSQL pra prod</div>
+      <div class="diag-row"><span class="diag-icon warn">!</span> Sem testes automatizados</div>
+      <div class="diag-row"><span class="diag-icon warn">!</span> Seed de dados insuficiente</div>
+    </div>
+  </div>
+
+  <!-- ══ TABS NAVIGATION ═════════════════════════════════════ -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('s1')" id="btn-s1">
+      <span class="tab-dot"></span>Sprint 1 — Fundação
+    </button>
+    <button class="tab-btn" onclick="switchTab('s2')" id="btn-s2">
+      <span class="tab-dot"></span>Sprint 2 — Entrega
+    </button>
+    <button class="tab-btn" onclick="switchTab('api')" id="btn-api">
+      <span class="tab-dot"></span>API Reference
+    </button>
+    <button class="tab-btn" onclick="switchTab('delivery')" id="btn-delivery">
+      <span class="tab-dot"></span>Checklist Final
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       TAB: SPRINT 1
+  ══════════════════════════════════════════════════════════ -->
+  <div class="tab-panel active" id="panel-s1">
+
+    <div class="section-label">Fluxo principal a validar ao fim da Sprint 1</div>
+    <div class="flow-bar">
+      <div class="flow-step">
+        <div class="flow-box">
+          <span class="fb-label">Login</span>
+          <span class="fb-sub">POST /api/auth/login</span>
+        </div>
+        <div class="flow-arrow">→</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-box">
+          <span class="fb-label">Abrir Caixa</span>
+          <span class="fb-sub">POST /api/cash-sessions</span>
+        </div>
+        <div class="flow-arrow">→</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-box">
+          <span class="fb-label">Scan Produto</span>
+          <span class="fb-sub">GET /api/products/barcode/{code}</span>
+        </div>
+        <div class="flow-arrow">→</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-box">
+          <span class="fb-label">Registrar Venda</span>
+          <span class="fb-sub">POST /api/sales</span>
+        </div>
+        <div class="flow-arrow">→</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-box">
+          <span class="fb-label">Fechar Caixa</span>
+          <span class="fb-sub">POST /api/cash-sessions/{id}/close</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Tarefas por dia — Sprint 1 (Dias 1–7)</div>
+    <div class="legend-bar">
+      <span class="legend-label">Responsável →</span>
+      <span class="leg leg-k"><span class="leg-dot"></span>Kauã — Backend/Arch/Security</span>
+      <span class="leg leg-p"><span class="leg-dot"></span>Pedro — DB + Backend</span>
+      <span class="leg leg-f"><span class="leg-dot"></span>Kerlon — Frontend/UX</span>
+      <span class="leg leg-all"><span class="leg-dot"></span>Todos</span>
+    </div>
+
+    <div class="days-grid">
+      <!-- DIA 1 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Segunda</div>
+          <div class="day-num">01</div>
+          <div class="day-tag focus">Auth Day</div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">User entity + JWT Auth</div>
+          <div class="task-desc">Criar domínio User com Id, Username, PasswordHash, Role (Operador/Gerente), IsActive. Adicionar JwtBearer no Program.cs. Endpoint POST /api/auth/login retornando JWT.</div>
+          <code class="task-code">dotnet add Microsoft.AspNetCore.Authentication.JwtBearer
+dotnet add BCrypt.Net-Next</code>
+          <div class="task-tags">
+            <span class="tag tag-critical">crítico</span>
+            <span class="tag tag-sec">segurança</span>
+            <span class="tag tag-api">API</span>
+          </div>
+        </div>
+        <div class="task-card p">
+          <div class="task-owner">Pedro</div>
+          <div class="task-title">EF Migrations — substituir EnsureCreated</div>
+          <div class="task-desc">Adicionar EF Tools, rodar primeira migration. Mudar DatabaseSeeder para MigrateAsync(). Nunca mais EnsureCreated em produção.</div>
+          <code class="task-code">dotnet add Microsoft.EntityFrameworkCore.Tools
+dotnet ef migrations add InitialCreate
+dotnet ef database update</code>
+          <div class="task-tags">
+            <span class="tag tag-critical">crítico</span>
+            <span class="tag tag-db">DB</span>
+          </div>
+        </div>
+        <div class="task-card f">
+          <div class="task-owner">Kerlon</div>
+          <div class="task-title">Setup React + roteamento</div>
+          <div class="task-desc">Vite + React + TypeScript. Instalar React Router, Axios. Proxy pra localhost:5235. Estrutura: /pages, /components, /services, /contexts.</div>
+          <code class="task-code">npm create vite@latest frontend -- --template react-ts
+npm install react-router-dom axios</code>
+          <div class="task-tags"><span class="tag tag-ui">UI</span></div>
+        </div>
+      </div>
+
+      <!-- DIA 2 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Terça</div>
+          <div class="day-num">02</div>
+          <div class="day-tag focus">Entidades</div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Category CRUD + Customer CRUD</div>
+          <div class="task-desc">Category: Id, Name, IsActive. Adicionar CategoryId opcional em Product. Customer: Id, Name, Document (CPF/CNPJ), Phone, Email. SaleService: associar Customer real pelo documento.</div>
+          <code class="task-code">GET/POST  /api/categories
+PUT       /api/categories/{id}
+GET/POST  /api/customers
+GET       /api/customers/document/{doc}</code>
+          <div class="task-tags"><span class="tag tag-api">API</span></div>
+        </div>
+        <div class="task-card p">
+          <div class="task-owner">Pedro</div>
+          <div class="task-title">Migration: User + Category + Customer</div>
+          <div class="task-desc">Adicionar Users, Categories, Customers ao DbContext. Índices: unique em User.Username, unique em Customer.Document. FK nullable de Product para Category.</div>
+          <code class="task-code">dotnet ef migrations add AddUserCategoryCustomer
+dotnet ef database update</code>
+          <div class="task-tags"><span class="tag tag-db">DB</span></div>
+        </div>
+        <div class="task-card f">
+          <div class="task-owner">Kerlon</div>
+          <div class="task-title">Tela de login + Axios interceptor</div>
+          <div class="task-desc">Form de login. Ao autenticar, salvar JWT no localStorage e injetar em todo request. Rota protegida: sem token → redireciona para /login.</div>
+          <div class="task-tags">
+            <span class="tag tag-ui">UI</span>
+            <span class="tag tag-sec">segurança</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIA 3 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Quarta</div>
+          <div class="day-num">03</div>
+          <div class="day-tag focus">Fornecedor</div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Supplier CRUD (Fornecedor)</div>
+          <div class="task-desc">Entidade Supplier: Id, CompanyName, TradeName, Document (CNPJ), Phone, Email, IsActive. CRUD completo. Validar CNPJ no service.</div>
+          <code class="task-code">GET/POST  /api/suppliers
+PUT       /api/suppliers/{id}
+GET       /api/suppliers/{id}</code>
+          <div class="task-tags"><span class="tag tag-api">API</span></div>
+        </div>
+        <div class="task-card p">
+          <div class="task-owner">Pedro</div>
+          <div class="task-title">Migration: Supplier + PurchaseEntry</div>
+          <div class="task-desc">Supplier, PurchaseEntry (cabeçalho da nota de entrada) e PurchaseItem (itens). PurchaseEntry: Id, SupplierId, InvoiceNumber, TotalCost, EnteredAt.</div>
+          <code class="task-code">dotnet ef migrations add AddSupplierAndPurchase</code>
+          <div class="task-tags"><span class="tag tag-db">DB</span></div>
+        </div>
+        <div class="task-card f">
+          <div class="task-owner">Kerlon</div>
+          <div class="task-title">Abertura / fechamento de caixa</div>
+          <div class="task-desc">Tela de abertura: TerminalId, OperatorName, OpeningAmount. Tela de fechamento: mostrar ExpectedClosingAmount, campo ClosingAmount e diferença em tempo real.</div>
+          <div class="task-tags"><span class="tag tag-ui">UI</span></div>
+        </div>
+      </div>
+
+      <!-- DIA 4 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Quinta</div>
+          <div class="day-num">04</div>
+          <div class="day-tag focus">Estoque</div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Entrada de estoque (PurchaseEntry)</div>
+          <div class="task-desc">POST /api/purchase-entries: recebe SupplierId, lista de itens (ProductId, Qty, UnitCost). Por item: incrementar StockQuantity + salvar InventoryMovement. Tudo em transação.</div>
+          <code class="task-code">POST /api/purchase-entries
+GET  /api/purchase-entries
+GET  /api/purchase-entries/{id}</code>
+          <div class="task-tags">
+            <span class="tag tag-api">API</span>
+            <span class="tag tag-db">DB</span>
+          </div>
+        </div>
+        <div class="task-card p">
+          <div class="task-owner">Pedro</div>
+          <div class="task-title">Índices de performance</div>
+          <div class="task-desc">Verificar e adicionar índices: Customer.Document, InventoryMovement.ProductId, Sale.CashSessionId. Testar com EXPLAIN QUERY PLAN no SQLite.</div>
+          <code class="task-code">EXPLAIN QUERY PLAN
+SELECT * FROM Sales
+WHERE CashSessionId = ?;</code>
+          <div class="task-tags"><span class="tag tag-db">DB</span></div>
+        </div>
+        <div class="task-card f">
+          <div class="task-owner">Kerlon</div>
+          <div class="task-title">Frente de caixa — PDV Screen</div>
+          <div class="task-desc">TELA PRINCIPAL. Campo barcode (Enter = busca). Carrinho com qtd editável e desconto. Seção pagamento multi-método. Botão finalizar. Exibir troco.</div>
+          <div class="task-tags">
+            <span class="tag tag-ui">UI</span>
+            <span class="tag tag-critical">principal</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIA 5 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Sexta</div>
+          <div class="day-num">05</div>
+          <div class="day-tag focus">Qualidade</div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Fix race condition + paginação</div>
+          <div class="task-desc">Race condition: MAX+1 com concorrência pode duplicar. Solução: AutoIncrement nativo SQLite ou tabela de contador com lock. Paginação: ?page=1&amp;pageSize=20 com PagedResponse&lt;T&gt;.</div>
+          <code class="task-code">record PagedResponse&lt;T&gt;(
+  IReadOnlyList&lt;T&gt; Items,
+  int Page, int PageSize,
+  int TotalCount, int TotalPages);</code>
+          <div class="task-tags"><span class="tag tag-api">API</span></div>
+        </div>
+        <div class="task-card p">
+          <div class="task-owner">Pedro</div>
+          <div class="task-title">Sequência / auto-increment p/ nº venda</div>
+          <div class="task-desc">Criar tabela SaleSequence com único registro e row-level lock, ou configurar EF para usar AUTOINCREMENT nativo. Garantir unicidade sem race condition.</div>
+          <div class="task-tags">
+            <span class="tag tag-db">DB</span>
+            <span class="tag tag-critical">crítico</span>
+          </div>
+        </div>
+        <div class="task-card f">
+          <div class="task-owner">Kerlon</div>
+          <div class="task-title">Tela de produtos (CRUD)</div>
+          <div class="task-desc">Listagem paginada com busca. Modal de criar/editar produto (barcode, nome, categoria, preço, estoque mínimo). Botão de ajuste manual de estoque com campo de motivo.</div>
+          <div class="task-tags"><span class="tag tag-ui">UI</span></div>
+        </div>
+      </div>
+
+      <!-- DIA 6 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Sábado</div>
+          <div class="day-num">06</div>
+          <div class="day-tag sync">Sync</div>
+        </div>
+        <div class="task-card all">
+          <div class="task-owner">Todos — Sync + Integração</div>
+          <div class="task-title">Teste do fluxo completo</div>
+          <div class="task-desc">Reunião de alinhamento. Testar end-to-end: login → abrir caixa → scan produto → vender com múltiplos pagamentos → fechar caixa. Documentar bugs. Priorizar pra Sprint 2.</div>
+          <div style="margin-top:10px;">
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span>JWT funciona nos endpoints protegidos</span></div>
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span>Estoque atualiza corretamente na venda</span></div>
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span>Cancelamento estorna estoque</span></div>
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span>Caixa não abre se já existe um aberto</span></div>
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span>Entrada de estoque incrementa produto</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIA 7 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Domingo</div>
+          <div class="day-num">07</div>
+          <div class="day-tag buffer">Buffer</div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Refactor + edge cases</div>
+          <div class="task-desc">Revisar todos os services. Garantir que todos os erros retornam como ProblemDetails com status codes corretos. Cobrir edge cases identificados no sync.</div>
+          <code class="task-code">201 Created → POST bem-sucedido
+409 Conflict → regra violada
+422 → validação falhou
+404 → entidade não encontrada</code>
+          <div class="task-tags"><span class="tag tag-api">API</span></div>
+        </div>
+        <div class="task-card p">
+          <div class="task-owner">Pedro</div>
+          <div class="task-title">Seed de dados + README setup</div>
+          <div class="task-desc">Expandir DatabaseSeeder com mais produtos, categorias, 1 usuário admin e 1 usuário operador padrão. Atualizar README com instrução de setup do zero.</div>
+          <div class="task-tags"><span class="tag tag-db">DB</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       TAB: SPRINT 2
+  ══════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-s2">
+
+    <div class="section-label">Tarefas por dia — Sprint 2 (Dias 8–14)</div>
+    <div class="legend-bar">
+      <span class="legend-label">Responsável →</span>
+      <span class="leg leg-k"><span class="leg-dot"></span>Kauã</span>
+      <span class="leg leg-p"><span class="leg-dot"></span>Pedro</span>
+      <span class="leg leg-f"><span class="leg-dot"></span>Kerlon</span>
+      <span class="leg leg-all"><span class="leg-dot"></span>Todos</span>
+    </div>
+
+    <div class="days-grid">
+      <!-- DIA 8 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Segunda</div>
+          <div class="day-num">08</div>
+          <div class="day-tag reports">Relatórios</div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Relatório: resumo de vendas</div>
+          <div class="task-desc">GET /api/reports/sales-summary. Retornar: TotalSales, TotalRevenue, TotalDiscounts, NetRevenue, SalesByPaymentMethod[], SalesByHour[]. Task.WhenAll para queries paralelas.</div>
+          <div class="task-tags">
+            <span class="tag tag-api">API</span>
+            <span class="tag tag-perf">performance</span>
+          </div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Relatório: alertas de estoque baixo</div>
+          <div class="task-desc">GET /api/reports/stock-alerts. Produtos onde StockQty ≤ MinStockQty. Retornar Deficit = MinStockQty - StockQty. Ordenar por déficit decrescente.</div>
+          <div class="task-tags"><span class="tag tag-api">API</span></div>
+        </div>
+        <div class="task-card p">
+          <div class="task-owner">Pedro</div>
+          <div class="task-title">Índices para queries de relatório</div>
+          <div class="task-desc">Garantir índices em Sale.CreatedAt, Sale.Status, Sale.CashSessionId. Índice parcial em Status=Completed para queries de totais.</div>
+          <div class="task-tags"><span class="tag tag-db">DB</span></div>
+        </div>
+        <div class="task-card f">
+          <div class="task-owner">Kerlon</div>
+          <div class="task-title">Tela de relatórios</div>
+          <div class="task-desc">Filtro de data + terminal. Cards com totais. Gráfico por hora. Tabela por método de pagamento. Formatação BRL (Intl.NumberFormat).</div>
+          <div class="task-tags"><span class="tag tag-ui">UI</span></div>
+        </div>
+      </div>
+
+      <!-- DIA 9 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Terça</div>
+          <div class="day-num">09</div>
+          <div class="day-tag reports">Relatórios</div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Relatório: fechamento de caixa</div>
+          <div class="task-desc">GET /api/reports/cash-session-summary/{id}. Sessão + total por método + ExpectedClosing + ClosingAmount + Diferença. Serve como comprovante de fechamento.</div>
+          <div class="task-tags"><span class="tag tag-api">API</span></div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Dashboard stats endpoint</div>
+          <div class="task-desc">GET /api/dashboard. Em uma única chamada: vendas hoje (count+total), caixas abertos, produtos com estoque baixo (count), últimas 5 vendas. Task.WhenAll.</div>
+          <div class="task-tags">
+            <span class="tag tag-api">API</span>
+            <span class="tag tag-perf">performance</span>
+          </div>
+        </div>
+        <div class="task-card f">
+          <div class="task-owner">Kerlon</div>
+          <div class="task-title">Dashboard principal</div>
+          <div class="task-desc">Cards de KPI (vendas hoje, ticket médio, caixas abertos, alertas de estoque). Lista das últimas vendas. Acesso rápido para abrir caixa ou ir ao PDV.</div>
+          <div class="task-tags"><span class="tag tag-ui">UI</span></div>
+        </div>
+      </div>
+
+      <!-- DIA 10 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Quarta</div>
+          <div class="day-num">10</div>
+          <div class="day-tag polish">Infra</div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Rate limiting + structured logging</div>
+          <div class="task-desc">Rate limiting: fixed window 100 req/min por IP com Microsoft.AspNetCore.RateLimiting. ILogger com parâmetros estruturados. Log de cada venda: Id, valor, operador, terminal.</div>
+          <code class="task-code">builder.Services.AddRateLimiter(opt => {
+  opt.AddFixedWindowLimiter("api", w => {
+    w.PermitLimit = 100;
+    w.Window = TimeSpan.FromMinutes(1);
+  });
+});</code>
+          <div class="task-tags"><span class="tag tag-api">API</span></div>
+        </div>
+        <div class="task-card p">
+          <div class="task-owner">Pedro</div>
+          <div class="task-title">Avaliação: SQLite → PostgreSQL</div>
+          <div class="task-desc">SQLite não escala pra múltiplos caixas com escrita concorrente. Avaliar migração: trocar EF.Sqlite por Npgsql. Impacto: tipos DateTime, sequências, índices parciais.</div>
+          <code class="task-code">dotnet add Npgsql.EntityFrameworkCore.PostgreSQL
+# Ajustar connection string
+# Testar migrations existentes</code>
+          <div class="task-tags"><span class="tag tag-db">DB</span></div>
+        </div>
+        <div class="task-card f">
+          <div class="task-owner">Kerlon</div>
+          <div class="task-title">Tela de fornecedores + entradas de estoque</div>
+          <div class="task-desc">CRUD de fornecedores. Tela de nota de entrada: selecionar fornecedor, nº da nota, lista de produtos com qtd e custo unitário. Botão confirmar entrada.</div>
+          <div class="task-tags"><span class="tag tag-ui">UI</span></div>
+        </div>
+      </div>
+
+      <!-- DIA 11 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Quinta</div>
+          <div class="day-num">11</div>
+          <div class="day-tag tests">Testes</div>
+        </div>
+        <div class="task-card all">
+          <div class="task-owner">Todos — Testes E2E manuais</div>
+          <div class="task-title">Validação dos fluxos completos</div>
+          <div class="task-desc">Testar todos os cenários com frontend integrado ao backend real.</div>
+          <div style="margin-top:10px;">
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span><strong>Fluxo 1 (Happy path):</strong> Login → Abrir caixa → Vender 3 produtos → Pagar Pix + Dinheiro → Fechar caixa → Ver relatório</span></div>
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span><strong>Fluxo 2 (Edge cases):</strong> Estoque zero, desconto &gt; valor, caixa já aberto, produto inativo, pagamento insuficiente</span></div>
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span><strong>Fluxo 3 (Cancelamento):</strong> Cancelar venda → verificar estorno de estoque</span></div>
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span><strong>Fluxo 4 (Estoque):</strong> Criar fornecedor → entrada de estoque → produto atualizado</span></div>
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span><strong>Fluxo 5 (Relatório):</strong> Verificar totais batem com vendas feitas</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIA 12 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Sexta</div>
+          <div class="day-num">12</div>
+          <div class="day-tag polish">Polish</div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Bug fixes críticos do backend</div>
+          <div class="task-desc">Resolver bugs encontrados nos testes. Priorizar os que bloqueiam o fluxo principal de venda. Documentar bugs conhecidos que não serão corrigidos a tempo.</div>
+          <div class="task-tags"><span class="tag tag-critical">bugs</span></div>
+        </div>
+        <div class="task-card p">
+          <div class="task-owner">Pedro</div>
+          <div class="task-title">Seed completo + backup DB</div>
+          <div class="task-desc">Expandir seed com mais produtos de categorias variadas, 1 usuário admin, 1 operador, 2 fornecedores, histórico de vendas para relatórios aparecerem populados no demo.</div>
+          <div class="task-tags"><span class="tag tag-db">DB</span></div>
+        </div>
+        <div class="task-card f">
+          <div class="task-owner">Kerlon</div>
+          <div class="task-title">Polish visual + UX completo</div>
+          <div class="task-desc">Loading states em todas as chamadas. Toast notifications (sucesso/erro). Mensagens de erro amigáveis. Formatação moeda/data PT-BR. Histórico de vendas paginado com cancelamento.</div>
+          <div class="task-tags"><span class="tag tag-ui">UI</span></div>
+        </div>
+      </div>
+
+      <!-- DIA 13 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Sábado</div>
+          <div class="day-num">13</div>
+          <div class="day-tag demo">Demo Prep</div>
+        </div>
+        <div class="task-card all">
+          <div class="task-owner">Todos — Preparação do demo</div>
+          <div class="task-title">Ensaio completo do sistema</div>
+          <div class="task-desc">Definir roteiro de 8-10 min. Garantir que o ambiente sobe com um único comando. Ensaiar apresentação. Preparar backup do banco com dados prontos.</div>
+          <code class="task-code">dotnet run --project ./Pdv.Backend/
+# Frontend:
+npm run dev</code>
+          <div style="margin-top:10px;">
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span>Testar em máquina limpa (sem env do dev)</span></div>
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span>README com instruções completas</span></div>
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span>.gitignore remove bin/, obj/, pdv.db</span></div>
+            <div class="diag-row"><div class="check-box" onclick="toggleCheck(this)"></div><span>appsettings sem credentials hardcoded</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIA 14 -->
+      <div class="day-col">
+        <div class="day-header">
+          <div class="day-name">Domingo</div>
+          <div class="day-num">14</div>
+          <div class="day-tag buffer">Buffer</div>
+        </div>
+        <div class="task-card k">
+          <div class="task-owner">Kauã</div>
+          <div class="task-title">Últimos ajustes + entrega</div>
+          <div class="task-desc">Corrigir qualquer problema de última hora. Verificar que todos os endpoints documentados no README funcionam. Tag de versão no git: v0.1.0-demo.</div>
+          <code class="task-code">git tag -a v0.1.0-demo -m "Demo funcional"
+git push origin v0.1.0-demo</code>
+          <div class="task-tags"><span class="tag tag-api">entrega</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEMO SCRIPT -->
+    <div class="section-label">Roteiro do demo (8–10 min)</div>
+    <div class="demo-bar">
+      <div class="demo-title">Sequência recomendada para apresentação</div>
+      <div class="demo-steps">
+        <div class="demo-step"><span class="demo-n">01</span><span class="demo-txt">Login como operador</span></div>
+        <div class="demo-arr">→</div>
+        <div class="demo-step"><span class="demo-n">02</span><span class="demo-txt">Dashboard com KPIs</span></div>
+        <div class="demo-arr">→</div>
+        <div class="demo-step"><span class="demo-n">03</span><span class="demo-txt">Abrir caixa (PDV-01)</span></div>
+        <div class="demo-arr">→</div>
+        <div class="demo-step"><span class="demo-n">04</span><span class="demo-txt">Scan 3 produtos barcode</span></div>
+        <div class="demo-arr">→</div>
+        <div class="demo-step"><span class="demo-n">05</span><span class="demo-txt">Aplicar desconto no item</span></div>
+        <div class="demo-arr">→</div>
+        <div class="demo-step"><span class="demo-n">06</span><span class="demo-txt">Pagamento misto (Pix + Dinheiro)</span></div>
+        <div class="demo-arr">→</div>
+        <div class="demo-step"><span class="demo-n">07</span><span class="demo-txt">Mostrar NFC-e gerada</span></div>
+        <div class="demo-arr">→</div>
+        <div class="demo-step"><span class="demo-n">08</span><span class="demo-txt">Fechar caixa + diferença</span></div>
+        <div class="demo-arr">→</div>
+        <div class="demo-step"><span class="demo-n">09</span><span class="demo-txt">Relatório de vendas do dia</span></div>
+        <div class="demo-arr">→</div>
+        <div class="demo-step"><span class="demo-n">10</span><span class="demo-txt">Alerta de estoque baixo</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       TAB: API REFERENCE
+  ══════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-api">
+    <div class="section-label">Novos endpoints — Sprint 2 + referência completa</div>
+    <div class="ep-grid">
+      <div class="ep-card">
+        <div class="ep-title">Auth &amp; Usuários</div>
+        <div class="ep-row"><span class="ep-method m-post">POST</span><div><div class="ep-path">/api/auth/login</div><div class="ep-desc">Retorna JWT Bearer token</div></div></div>
+        <div class="ep-row"><span class="ep-method m-post">POST</span><div><div class="ep-path">/api/auth/refresh</div><div class="ep-desc">Renovar JWT com refresh token</div></div></div>
+      </div>
+      <div class="ep-card">
+        <div class="ep-title">Produtos</div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/products?page=1&amp;pageSize=20&amp;search=</div><div class="ep-desc">Listagem paginada</div></div></div>
+        <div class="ep-row"><span class="ep-method m-post">POST</span><div><div class="ep-path">/api/products</div><div class="ep-desc">Criar produto</div></div></div>
+        <div class="ep-row"><span class="ep-method m-put">PUT</span><div><div class="ep-path">/api/products/{id}</div><div class="ep-desc">Atualizar produto</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/products/barcode/{barcode}</div><div class="ep-desc">Buscar por código de barras</div></div></div>
+        <div class="ep-row"><span class="ep-method m-post">POST</span><div><div class="ep-path">/api/products/{id}/stock-adjustments</div><div class="ep-desc">Ajuste manual de estoque</div></div></div>
+      </div>
+      <div class="ep-card">
+        <div class="ep-title">Categorias &amp; Clientes</div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/categories</div></div></div>
+        <div class="ep-row"><span class="ep-method m-post">POST</span><div><div class="ep-path">/api/categories</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/customers</div></div></div>
+        <div class="ep-row"><span class="ep-method m-post">POST</span><div><div class="ep-path">/api/customers</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/customers/document/{doc}</div></div></div>
+      </div>
+      <div class="ep-card">
+        <div class="ep-title">Caixa (Cash Sessions)</div>
+        <div class="ep-row"><span class="ep-method m-post">POST</span><div><div class="ep-path">/api/cash-sessions</div><div class="ep-desc">Abrir caixa</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/cash-sessions/open/{terminalId}</div><div class="ep-desc">Caixa aberto do terminal</div></div></div>
+        <div class="ep-row"><span class="ep-method m-post">POST</span><div><div class="ep-path">/api/cash-sessions/{id}/close</div><div class="ep-desc">Fechar caixa</div></div></div>
+      </div>
+      <div class="ep-card">
+        <div class="ep-title">Vendas &amp; Documentos</div>
+        <div class="ep-row"><span class="ep-method m-post">POST</span><div><div class="ep-path">/api/sales</div><div class="ep-desc">Registrar venda com itens e pagamentos</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/sales?page=1&amp;pageSize=20&amp;from=&amp;to=</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/sales/{id}</div></div></div>
+        <div class="ep-row"><span class="ep-method m-post">POST</span><div><div class="ep-path">/api/sales/{id}/cancel</div><div class="ep-desc">Cancela e estorna estoque</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/fiscal-documents/sale/{saleId}</div></div></div>
+      </div>
+      <div class="ep-card">
+        <div class="ep-title">Relatórios &amp; Dashboard</div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/dashboard</div><div class="ep-desc">KPIs em 1 chamada</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/reports/sales-summary</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/reports/stock-alerts</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/reports/cash-session-summary/{id}</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/api/reports/inventory-movements</div></div></div>
+        <div class="ep-row"><span class="ep-method m-get">GET</span><div><div class="ep-path">/health</div><div class="ep-desc">Health check do banco</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       TAB: DELIVERY CHECKLIST
+  ══════════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-delivery">
+    <div class="section-label">Checklist de entrega final</div>
+    <div class="delivery-grid">
+      <div class="delivery-card">
+        <div class="delivery-title">
+          <span>Backend</span>
+          <span class="dtag dtag-k">Kauã</span>
+        </div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">JWT auth funcional com roles (Operador / Gerente)</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">CRUD: Product, Category, Customer, Supplier</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Fluxo de venda completo com estoque</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Entrada de estoque (PurchaseEntry)</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Cancelamento de venda com estorno</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">3 endpoints de relatório</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Dashboard stats em 1 chamada (Task.WhenAll)</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Paginação em todos os lists (PagedResponse&lt;T&gt;)</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Rate limiting no /api</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Health check /health</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">OpenAPI documentado e acessível</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Fix race condition número da venda</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">ProblemDetails em todos os erros (status codes corretos)</span></div>
+      </div>
+      <div class="delivery-card">
+        <div class="delivery-title">
+          <span>Database</span>
+          <span class="dtag dtag-p">Pedro</span>
+        </div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">EF Migrations (substituir EnsureCreated)</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Índices em todas colunas de busca</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Índices parciais para queries de relatório</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Seed com dados realistas para o demo</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Avaliação SQLite → PostgreSQL documentada</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">SaleSequence / AUTOINCREMENT sem race condition</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Backup do banco com dados de demo</span></div>
+      </div>
+      <div class="delivery-card">
+        <div class="delivery-title">
+          <span>Frontend &amp; UX</span>
+          <span class="dtag dtag-f">Kerlon</span>
+        </div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Login + rotas protegidas (Axios interceptor)</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">PDV screen (scan barcode, cart, pagamento, troco)</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Dashboard com KPIs</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Relatórios com gráficos (por hora)</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Histórico de vendas paginado</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Abertura e fechamento de caixa</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Tela de fornecedores + entrada de estoque</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Formatação PT-BR (BRL, datas)</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Loading states + Toast notifications</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Error handling amigável</span></div>
+      </div>
+      <div class="delivery-card">
+        <div class="delivery-title">
+          <span>Entrega Geral</span>
+          <span class="dtag dtag-all">Todos</span>
+        </div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">README com setup completo</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">.gitignore remove bin/, obj/, pdv.db</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">appsettings sem credentials hardcoded</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Sistema sobe com um único comando</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">E2E: 5 fluxos testados e validados</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Demo ensaiado (8-10 min, roteiro fixo)</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Tag v0.1.0-demo no git</span></div>
+        <div class="check-item" onclick="toggleItem(this)"><div class="check-box"></div><span class="check-text">Testado em máquina limpa</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ FOOTER ═══════════════════════════════════════════════ -->
+  <footer class="footer">
+    <div class="footer-note">PDV System · Sprint 1–2 de 14 dias · Kauã · Pedro · Kerlon</div>
+    <div class="footer-note" style="color:var(--k)">
+      → <a href="https://github.com/Kaua-KGzin/System-PVD" class="footer-link" target="_blank">github.com/Kaua-KGzin/System-PVD</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // ── TAB SWITCHING ──────────────────────────────────────────
+  function switchTab(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    document.getElementById('btn-' + id).classList.add('active');
+  }
+
+  // ── INTERACTIVE CHECKLISTS ────────────────────────────────
+  function toggleCheck(box) {
+    const item = box.closest('.diag-row') || box.closest('.check-item');
+    if (item) item.classList.toggle('done');
+    else {
+      box.classList.toggle('checked');
+      if (box.classList.contains('checked')) {
+        box.style.background = 'rgba(124,111,247,0.15)';
+        box.style.borderColor = 'var(--k)';
+        box.innerHTML = '<span style="color:var(--k);font-size:10px;font-weight:700;line-height:1">✓</span>';
+      } else {
+        box.style.background = '';
+        box.style.borderColor = '';
+        box.innerHTML = '';
+      }
+    }
+  }
+
+  function toggleItem(item) {
+    item.classList.toggle('done');
+    const counter = updateProgress();
+    document.title = `PDV Roadmap — ${counter.done}/${counter.total} entregues`;
+  }
+
+  function updateProgress() {
+    const all = document.querySelectorAll('#panel-delivery .check-item');
+    const done = document.querySelectorAll('#panel-delivery .check-item.done');
+    return { done: done.length, total: all.length };
+  }
+
+  // ── ENTRANCE ANIMATIONS ───────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.style.opacity = '1';
+          e.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, { threshold: 0.05 });
+
+    document.querySelectorAll('.team-card, .status-card, .diag-card, .task-card, .ep-card, .delivery-card').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(16px)';
+      el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+      observer.observe(el);
+    });
+
+    // Animate bars
+    setTimeout(() => {
+      document.querySelectorAll('.sc-bar-fill').forEach(bar => {
+        const width = bar.style.width;
+        bar.style.width = '0';
+        requestAnimationFrame(() => {
+          bar.style.transition = 'width 1.2s cubic-bezier(0.4,0,0.2,1)';
+          bar.style.width = width;
+        });
+      });
+    }, 300);
+  });
+</script>
+</body>
+</html>
