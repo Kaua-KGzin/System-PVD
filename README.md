@@ -52,7 +52,7 @@
 |--------|--------|--------|
 | **Kauã** | [@Kaua-KGzin](https://github.com/Kaua-KGzin) | Tech Lead · Architect · Backend · Security Eng · QA · DevOps |
 | **Kerlon** | — | Frontend Lead · UX/UI Designer · React · TypeScript |
-| **Pedro** | — | Database Architect · EF Core · Migrations · Query Performance |
+| **Pedro** | [@taskhyw](https://gitbub.com/taskhyw) | Database Architect · EF Core · Migrations · Query Performance |
 
 ---
 
