@@ -115,3 +115,5 @@ $RECYCLE.BIN/
 *.pem
 secrets.json
 appsettings.Production.json
+# Added by code-review-graph
+.code-review-graph/

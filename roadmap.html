@@ -853,7 +853,21 @@ body::after {
         <td><span class="owner-badge ob-p">Pedro</span></td>
         <td>
           <div class="task-name">EF Migrations — eliminar EnsureCreated</div>
-          <div class="task-detail">Adicionar Microsoft.EntityFrameworkCore.Tools. Criar InitialCreate migration. Migrar DatabaseSeeder para <code class="code">await db.Database.MigrateAsync();</code> Nunca mais EnsureCreated em prod.</div>
+          <div class="task-detail">
+            <strong>O que está errado:</strong> <code class="code">DatabaseSeeder.cs:13</code> chama <code class="code">await db.Database.EnsureCreatedAsync();</code> — isso cria o schema sem histórico de versão, impossível fazer rollback ou evoluir o banco em produção.<br><br>
+            <strong>Passo 1</strong> — <code class="code">Microsoft.EntityFrameworkCore.Design</code> <em>já está no <code class="code">Pdv.Backend.csproj</code></em>. Não instale nada.<br><br>
+            <strong>Passo 2</strong> — Instale o CLI global (se ainda não tiver):
+            <code class="code">dotnet tool install --global dotnet-ef</code><br><br>
+            <strong>Passo 3</strong> — Dentro da pasta <code class="code">Pdv.Backend/</code>, gere a migration inicial:
+            <code class="code">dotnet ef migrations add InitialCreate</code>
+            Isso cria a pasta <code class="code">Pdv.Backend/Migrations/</code> com <code class="code">InitialCreate.cs</code> e <code class="code">PdvDbContextModelSnapshot.cs</code>.<br><br>
+            <strong>Passo 4</strong> — Em <code class="code">DatabaseSeeder.cs linha 13</code>, troque:
+            <code class="code">await db.Database.EnsureCreatedAsync();</code>
+            por:
+            <code class="code">await db.Database.MigrateAsync();</code><br><br>
+            <strong>Passo 5</strong> — Rode <code class="code">dotnet run</code> e confirme no log que a migration <code class="code">InitialCreate</code> foi aplicada sem erro. Depois, <strong>delete o arquivo <code class="code">pdv.db</code></strong> (SQLite local) e rode de novo — deve recriar tudo limpo via migration.<br><br>
+            <strong>Regra:</strong> nunca usar <code class="code">EnsureCreated</code> em nenhum ambiente. Toda mudança de schema daqui pra frente vira uma nova migration.
+          </div>
         </td>
         <td><span class="tag tag-db">DB</span><span class="tag tag-crit">crítico</span></td>
         <td><span class="prio prio-high" title="Alta"></span></td>

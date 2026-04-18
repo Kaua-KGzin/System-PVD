@@ -8,7 +8,8 @@ public static class FiscalDocumentEndpoints
     public static IEndpointRouteBuilder MapFiscalDocumentEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/fiscal-documents")
-            .WithTags("Fiscal");
+            .WithTags("Fiscal")
+            .RequireAuthorization();
 
         group.MapGet("/{accessKey}", async (
             string accessKey,

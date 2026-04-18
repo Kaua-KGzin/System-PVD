@@ -1,6 +1,7 @@
 const API_URL = 'http://localhost:5235';
 
 let state = {
+    token: null,
     cashSessionId: null,
     operatorName: '',
     cart: [], // { productId, barcode, name, price, quantity }
@@ -9,6 +10,7 @@ let state = {
 
 document.addEventListener('DOMContentLoaded', () => {
     // Referências do DOM
+    const loginScreen = document.getElementById('login-screen');
     const setupScreen = document.getElementById('setup-screen');
     const pdvScreen = document.getElementById('pdv-screen');
     const operatorBadge = document.getElementById('lblOperator');
@@ -22,6 +24,44 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Utilitário de formatação de moeda
     const formatCurrency = (val) => val.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+
+    // 0. Login
+    document.getElementById('btnLogin').addEventListener('click', async () => {
+        const usernameInput = document.getElementById('username').value.trim();
+        const passwordInput = document.getElementById('password').value.trim();
+
+        if (!usernameInput || !passwordInput) {
+            return alert('Preencha usuário e senha!');
+        }
+
+        const btnLogin = document.getElementById('btnLogin');
+        btnLogin.disabled = true;
+        btnLogin.textContent = 'Autenticando...';
+
+        try {
+            const res = await fetch(`${API_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: usernameInput, password: passwordInput })
+            });
+
+            if (!res.ok) {
+                throw new Error('Credenciais inválidas!');
+            }
+
+            const data = await res.json();
+            state.token = data.token; // Armazena token JWT
+            
+            // Vai para a tela de setup de caixa
+            loginScreen.classList.remove('active');
+            setupScreen.classList.add('active');
+        } catch (e) {
+            alert(e.message);
+        } finally {
+            btnLogin.disabled = false;
+            btnLogin.textContent = 'Entrar no Sistema';
+        }
+    });
 
     // 1. Abrir Sessão do Caixa
     document.getElementById('btnOpenRegister').addEventListener('click', async () => {
@@ -41,7 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let finalOperatorName = operatorName;
             
             // 1. Tenta recuperar se já existe um caixa aberto para o PDV-01
-            const checkRes = await fetch(`${API_URL}/api/cash-sessions/open/PDV-01`);
+            const checkRes = await fetch(`${API_URL}/api/cash-sessions/open/PDV-01`, {
+                headers: { 'Authorization': `Bearer ${state.token}` }
+            });
             
             // Se retornou OK (200), já existe caixa
             if (checkRes.ok) {
@@ -53,7 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 2. Tenta criação normal de um novo caixa
                 const res = await fetch(`${API_URL}/api/cash-sessions`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.token}`
+                    },
                     body: JSON.stringify({ 
                         terminalId: 'PDV-01', 
                         operatorName, 
@@ -104,7 +149,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 existing.quantity += 1;
             } else {
                 // Requisição Backend
-                const res = await fetch(`${API_URL}/api/products/barcode/${barcode}`);
+                const res = await fetch(`${API_URL}/api/products/barcode/${barcode}`, {
+                    headers: { 'Authorization': `Bearer ${state.token}` }
+                });
                 if(!res.ok) {
                     if (res.status === 404) throw new Error('Produto não encontrado! (Verifique o código)');
                     throw new Error('Falha na consulta do produto.');
@@ -225,7 +272,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch(`${API_URL}/api/sales`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${state.token}`
+                },
                 body: JSON.stringify(payload)
             });
 
