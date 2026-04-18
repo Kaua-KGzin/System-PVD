@@ -6,6 +6,9 @@ namespace Pdv.Backend.Data;
 
 public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbContext(options)
 {
+    public DbSet<User> Users => Set<User>();
+    public DbSet<SaleCounter> SaleCounters => Set<SaleCounter>();
+
     private static readonly ValueConverter<DateTimeOffset, long> DateTimeOffsetConverter = new(
         value => value.ToUniversalTime().Ticks,
         value => new DateTimeOffset(new DateTime(value, DateTimeKind.Utc)));
@@ -24,6 +27,20 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(u => u.Id);
+            entity.HasIndex(u => u.Username).IsUnique();
+            entity.Property(u => u.Username).HasMaxLength(80).IsRequired();
+            entity.Property(u => u.PasswordHash).IsRequired();
+            entity.Property(u => u.Role).HasMaxLength(32).IsRequired();
+        });
+
+        modelBuilder.Entity<SaleCounter>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+        });
+
         modelBuilder.Entity<Product>(entity =>
         {
             entity.HasKey(product => product.Id);

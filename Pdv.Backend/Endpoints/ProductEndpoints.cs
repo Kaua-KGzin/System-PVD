@@ -9,14 +9,17 @@ public static class ProductEndpoints
     public static IEndpointRouteBuilder MapProductsEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/products")
-            .WithTags("Produtos");
+            .WithTags("Produtos")
+            .RequireAuthorization();
 
         group.MapGet("/", async (
             ProductService service,
             string? search = null,
             bool includeInactive = false,
+            int page = 1,
+            int pageSize = 20,
             CancellationToken cancellationToken = default) =>
-            Results.Ok(await service.SearchAsync(search, includeInactive, cancellationToken)))
+            Results.Ok(await service.SearchAsync(search, includeInactive, page, pageSize, cancellationToken)))
             .WithName("ListProducts");
 
         group.MapGet("/{id:guid}", async (

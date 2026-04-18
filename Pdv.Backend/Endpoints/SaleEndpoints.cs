@@ -9,15 +9,18 @@ public static class SaleEndpoints
     public static IEndpointRouteBuilder MapSalesEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/sales")
-            .WithTags("Vendas");
+            .WithTags("Vendas")
+            .RequireAuthorization();
 
         group.MapGet("/", async (
             SaleService service,
             Guid? cashSessionId,
             DateTimeOffset? from,
             DateTimeOffset? to,
-            CancellationToken cancellationToken) =>
-            Results.Ok(await service.ListAsync(cashSessionId, from, to, cancellationToken)))
+            int page = 1,
+            int pageSize = 20,
+            CancellationToken cancellationToken = default) =>
+            Results.Ok(await service.ListAsync(cashSessionId, from, to, page, pageSize, cancellationToken)))
             .WithName("ListSales");
 
         group.MapGet("/{id:guid}", async (

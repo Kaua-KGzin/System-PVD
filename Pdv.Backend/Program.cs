@@ -1,5 +1,8 @@
+using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Pdv.Backend.Data;
 using Pdv.Backend.Endpoints;
 using Pdv.Backend.Services;
@@ -27,10 +30,28 @@ builder.Services.AddDbContext<PdvDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("PdvDatabase")
         ?? "Data Source=pdv.db";
-
     options.UseSqlite(connectionString);
 });
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]!))
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<CashRegisterService>();
 builder.Services.AddScoped<FiscalDocumentService>();
@@ -50,8 +71,11 @@ else
 
 app.UseHttpsRedirection();
 app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapHealthChecks("/health");
+app.MapAuthEndpoints();
 app.MapProductsEndpoints();
 app.MapCashRegisterEndpoints();
 app.MapSalesEndpoints();

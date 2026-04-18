@@ -9,14 +9,17 @@ public static class CashRegisterEndpoints
     public static IEndpointRouteBuilder MapCashRegisterEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/cash-sessions")
-            .WithTags("Caixa");
+            .WithTags("Caixa")
+            .RequireAuthorization();
 
         group.MapGet("/", async (
             CashRegisterService service,
             string? terminalId = null,
             bool onlyOpen = false,
+            int page = 1,
+            int pageSize = 20,
             CancellationToken cancellationToken = default) =>
-            Results.Ok(await service.ListAsync(terminalId, onlyOpen, cancellationToken)))
+            Results.Ok(await service.ListAsync(terminalId, onlyOpen, page, pageSize, cancellationToken)))
             .WithName("ListCashSessions");
 
         group.MapGet("/{id:guid}", async (
