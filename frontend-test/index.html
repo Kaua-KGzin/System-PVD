@@ -3,108 +3,389 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDV Simulator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>PDV Pro</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="login-screen" class="screen active">
-        <div class="glass-panel form-panel">
-            <h2>Login</h2>
-            <div class="form-group">
-                <label>Usuário</label>
-                <input type="text" id="username" value="admin">
-            </div>
-            <div class="form-group">
-                <label>Senha</label>
-                <input type="password" id="password" value="admin123">
-            </div>
-            <button id="btnLogin" class="btn-primary">Entrar no Sistema</button>
-        </div>
-    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <div id="setup-screen" class="screen">
-        <div class="glass-panel form-panel">
-            <h2>Abrir Caixa</h2>
-            <div class="form-group">
-                <label>Operador</label>
-                <input type="text" id="operatorName" value="Maria">
-            </div>
-            <div class="form-group">
-                <label>Troco Inicial (R$)</label>
-                <input type="number" id="openingAmount" value="150.00" step="0.01">
-            </div>
-            <button id="btnOpenRegister" class="btn-primary">Abrir Sessão de Caixa</button>
-        </div>
-    </div>
+    <section id="login-screen" class="screen active auth-screen">
+        <form id="loginForm" class="auth-panel">
+            <div class="brand-mark">PDV Pro</div>
+            <h1>Acesso operacional</h1>
+            <label class="field">
+                <span>Usuario</span>
+                <input type="text" id="username" autocomplete="username" placeholder="admin">
+            </label>
+            <label class="field">
+                <span>Senha</span>
+                <input type="password" id="password" autocomplete="current-password" placeholder="senha">
+            </label>
+            <button id="btnLogin" class="btn primary" type="submit">Entrar</button>
+        </form>
+    </section>
 
-    <div id="pdv-screen" class="screen">
-        <header class="navbar">
-            <div class="logo">PDV <span style="color:var(--text-primary)">SIMULATOR</span></div>
-            <div class="status">
-                <span class="operator-badge">👤 Operador: <span id="lblOperator"></span></span>
-                <span class="status-badge success">Caixa Aberto</span>
-            </div>
-        </header>
+    <section id="setup-screen" class="screen auth-screen">
+        <form id="openRegisterForm" class="auth-panel">
+            <div class="brand-mark">PDV Pro</div>
+            <h1>Abertura de caixa</h1>
+            <label class="field">
+                <span>Terminal</span>
+                <input type="text" id="terminalId" value="PDV-01">
+            </label>
+            <label class="field">
+                <span>Operador</span>
+                <input type="text" id="operatorName" placeholder="Nome do operador">
+            </label>
+            <label class="field">
+                <span>Fundo de troco</span>
+                <input type="number" id="openingAmount" value="150.00" min="0" step="0.01">
+            </label>
+            <button id="btnOpenRegister" class="btn primary" type="submit">Abrir caixa</button>
+        </form>
+    </section>
 
-        <main class="grid-container">
-            <section class="left-panel glass-panel">
-                <div class="scanner-section">
-                    <input type="text" id="barcodeInput" placeholder="Escaneie o código de barras (Ex: 7891000100103)..." autocomplete="off">
-                    <button id="btnScan" class="btn-primary">Adicionar</button>
+    <section id="app-container" class="screen app-shell">
+        <aside class="sidebar">
+            <div class="brand-mark compact">PDV Pro</div>
+            <nav class="nav-tabs" aria-label="Navegacao principal">
+                <button class="tab-btn active" data-tab="dashboard-tab" type="button">Dashboard</button>
+                <button class="tab-btn" data-tab="pdv-tab" type="button">Frente de caixa</button>
+                <button class="tab-btn" data-tab="catalog-tab" type="button">Catalogo</button>
+                <button class="tab-btn" data-tab="history-tab" type="button">Historico</button>
+                <button class="tab-btn" data-tab="cash-tab" type="button">Fechamento</button>
+                <button class="tab-btn" data-tab="suppliers-tab" type="button">Fornecedores</button>
+                <button class="tab-btn" data-tab="purchase-tab" type="button">Entrada de estoque</button>
+                <button class="tab-btn" data-tab="reports-tab" type="button">Relatorios</button>
+            </nav>
+        </aside>
+
+        <div class="workspace">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">Operacao</p>
+                    <h2 id="viewTitle">Dashboard</h2>
                 </div>
-                
-                <div class="quick-add-section">
-                    <h4>Testes Rápidos:</h4>
+                <div class="session-strip">
+                    <span id="lblOperator">Operador</span>
+                    <span id="lblTerminal">PDV-01</span>
+                    <span id="badgeSessionState" class="badge success">Caixa aberto</span>
+                </div>
+            </header>
+
+            <main class="tab-content active" id="dashboard-tab">
+                <section class="metric-grid">
+                    <article class="metric-panel">
+                        <span>Vendas hoje</span>
+                        <strong id="kpiSalesCount">0</strong>
+                    </article>
+                    <article class="metric-panel">
+                        <span>Faturamento hoje</span>
+                        <strong id="kpiSalesTotal">R$ 0,00</strong>
+                    </article>
+                    <article class="metric-panel">
+                        <span>Ticket medio</span>
+                        <strong id="kpiAvgTicket">R$ 0,00</strong>
+                    </article>
+                    <article class="metric-panel">
+                        <span>Estoque baixo</span>
+                        <strong id="kpiLowStock">0</strong>
+                    </article>
+                </section>
+
+                <section class="split-view">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3>Ultimas vendas</h3>
+                            <button id="btnRefreshDashboard" class="btn ghost" type="button">Atualizar</button>
+                        </div>
+                        <div class="table-wrap compact-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>N.</th>
+                                        <th>Operador</th>
+                                        <th>Status</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentSalesBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3>Alertas de estoque</h3>
+                        </div>
+                        <div class="table-wrap compact-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Produto</th>
+                                        <th>Atual</th>
+                                        <th>Min.</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboardStockAlertsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <main class="tab-content pdv-layout" id="pdv-tab">
+                <section class="panel sale-panel">
+                    <div class="scan-bar">
+                        <input type="text" id="barcodeInput" placeholder="Codigo de barras" autocomplete="off">
+                        <button id="btnScan" class="btn primary" type="button">Adicionar</button>
+                    </div>
                     <div class="quick-add-buttons">
-                        <button class="btn-quick-add" data-barcode="7891000100103">🍚 Arroz 5kg</button>
-                        <button class="btn-quick-add" data-barcode="7894900011517">🥤 Cola 2L</button>
-                        <button class="btn-quick-add" data-barcode="7891910000197">☕ Café 500g</button>
+                        <button class="chip" data-barcode="7891000100103" type="button">Arroz 5kg</button>
+                        <button class="chip" data-barcode="7894900011517" type="button">Cola 2L</button>
+                        <button class="chip" data-barcode="7891910000197" type="button">Cafe 500g</button>
                     </div>
-                </div>
-                
-                <div class="cart-section">
-                    <div class="cart-header">
-                        <span>Produto / Código</span>
+                    <div class="cart-grid header-row">
+                        <span>Produto</span>
                         <span>Qtd</span>
-                        <span>Preço Unit.</span>
-                        <span style="text-align: right">Total</span>
+                        <span>Unit.</span>
+                        <span>Total</span>
                     </div>
-                    <ul id="cartItems" class="cart-items">
-                        <!-- Itens renderizados no JS -->
-                    </ul>
-                </div>
-            </section>
+                    <ul id="cartItems" class="cart-items"></ul>
+                </section>
 
-            <section class="right-panel glass-panel">
-                <div class="totals">
-                    <div class="total-row">
-                        <span>Subtotal</span>
-                        <span id="lblSubtotal">R$ 0,00</span>
+                <aside class="panel checkout-panel">
+                    <div class="total-box">
+                        <span>Itens</span>
+                        <strong id="lblItemCount">0</strong>
                     </div>
-                    <div class="total-row grand-total">
-                        <span>Total Venda</span>
-                        <span id="lblTotal">R$ 0,00</span>
+                    <div class="total-box grand">
+                        <span>Total</span>
+                        <strong id="lblTotal">R$ 0,00</strong>
                     </div>
-                </div>
+                    <div class="payment-section hidden" id="paymentSection">
+                        <div class="payment-methods">
+                            <button class="pay-method active" data-method="Cash" type="button">Dinheiro</button>
+                            <button class="pay-method" data-method="CreditCard" type="button">Credito</button>
+                            <button class="pay-method" data-method="DebitCard" type="button">Debito</button>
+                            <button class="pay-method" data-method="Pix" type="button">Pix</button>
+                        </div>
+                        <button id="btnFinalize" class="btn success" type="button">Confirmar venda</button>
+                        <button id="btnCancelCheckout" class="btn ghost" type="button">Voltar</button>
+                    </div>
+                    <button id="btnCheckout" class="btn primary" type="button">Ir para pagamento</button>
+                </aside>
+            </main>
 
-                <div class="payment-section hidden" id="paymentSection">
-                    <h3>Forma de Pagamento</h3>
-                    <div class="payment-methods">
-                        <button class="pay-method active" data-method="Cash">💵 Dinheiro</button>
-                        <button class="pay-method" data-method="CreditCard">💳 Crédito</button>
-                        <button class="pay-method" data-method="DebitCard">💳 Débito</button>
-                        <button class="pay-method" data-method="Pix">📱 PIX</button>
+            <main class="tab-content" id="catalog-tab">
+                <section class="panel full-height">
+                    <div class="panel-header">
+                        <h3>Catalogo</h3>
+                        <div class="toolbar">
+                            <input type="text" id="catalogSearch" placeholder="Buscar produto">
+                            <button id="btnCatalogSearch" class="btn secondary" type="button">Pesquisar</button>
+                        </div>
                     </div>
-                    <button id="btnFinalize" class="btn-success btn-large">Finalizar Venda</button>
-                </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Codigo</th>
+                                    <th>Un.</th>
+                                    <th>Preco</th>
+                                    <th>Estoque</th>
+                                    <th>Min.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="catalogTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <button id="btnCatalogPrev" class="btn ghost" type="button">Anterior</button>
+                        <span id="catalogPageInfo">Pagina 1 de 1</span>
+                        <button id="btnCatalogNext" class="btn ghost" type="button">Proxima</button>
+                    </div>
+                </section>
+            </main>
 
-                <div id="checkoutAction">
-                    <button id="btnCheckout" class="btn-primary btn-large">Ir para Pagamento</button>
-                </div>
-            </section>
-        </main>
-    </div>
+            <main class="tab-content" id="history-tab">
+                <section class="panel full-height">
+                    <div class="panel-header">
+                        <h3>Historico de vendas</h3>
+                        <button id="btnRefreshHistory" class="btn secondary" type="button">Atualizar</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>N.</th>
+                                    <th>Data</th>
+                                    <th>Operador</th>
+                                    <th>Status</th>
+                                    <th>Total</th>
+                                    <th>Acao</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <button id="btnHistoryPrev" class="btn ghost" type="button">Anterior</button>
+                        <span id="historyPageInfo">Pagina 1 de 1</span>
+                        <button id="btnHistoryNext" class="btn ghost" type="button">Proxima</button>
+                    </div>
+                </section>
+            </main>
+
+            <main class="tab-content" id="cash-tab">
+                <section class="panel narrow-panel">
+                    <h3>Fechamento de caixa</h3>
+                    <div class="summary-stack">
+                        <div><span>Troco inicial</span><strong id="summaryOpening">R$ 0,00</strong></div>
+                        <div><span>Esperado em gaveta</span><strong id="summaryExpected">R$ 0,00</strong></div>
+                    </div>
+                    <label class="field">
+                        <span>Valor apurado</span>
+                        <input type="number" id="closingAmount" min="0" step="0.01" placeholder="0,00">
+                    </label>
+                    <label class="field">
+                        <span>Observacoes</span>
+                        <input type="text" id="closingNotes" placeholder="Opcional">
+                    </label>
+                    <button id="btnCloseCash" class="btn danger" type="button">Encerrar turno</button>
+                </section>
+            </main>
+
+            <main class="tab-content management-layout" id="suppliers-tab">
+                <section class="panel">
+                    <div class="panel-header">
+                        <h3>Fornecedores</h3>
+                        <div class="toolbar">
+                            <input type="text" id="supplierSearch" placeholder="Buscar fornecedor">
+                            <button id="btnSupplierSearch" class="btn secondary" type="button">Pesquisar</button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>CNPJ</th>
+                                    <th>Contato</th>
+                                    <th>Status</th>
+                                    <th>Acao</th>
+                                </tr>
+                            </thead>
+                            <tbody id="suppliersTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <button id="btnSuppliersPrev" class="btn ghost" type="button">Anterior</button>
+                        <span id="suppliersPageInfo">Pagina 1 de 1</span>
+                        <button id="btnSuppliersNext" class="btn ghost" type="button">Proxima</button>
+                    </div>
+                </section>
+
+                <form id="supplierForm" class="panel side-form">
+                    <h3 id="supplierFormTitle">Novo fornecedor</h3>
+                    <input type="hidden" id="supplierId">
+                    <label class="field"><span>Nome</span><input id="supplierName" type="text" required></label>
+                    <label class="field"><span>CNPJ</span><input id="supplierCnpj" type="text"></label>
+                    <label class="field"><span>Contato</span><input id="supplierContact" type="text"></label>
+                    <label class="field"><span>Telefone</span><input id="supplierPhone" type="text"></label>
+                    <label class="field"><span>Email</span><input id="supplierEmail" type="email"></label>
+                    <label class="check-field"><input id="supplierActive" type="checkbox" checked> Ativo</label>
+                    <button id="btnSaveSupplier" class="btn primary" type="submit">Salvar fornecedor</button>
+                    <button id="btnClearSupplier" class="btn ghost" type="button">Limpar</button>
+                </form>
+            </main>
+
+            <main class="tab-content management-layout" id="purchase-tab">
+                <section class="panel side-form">
+                    <h3>Nova entrada</h3>
+                    <label class="field">
+                        <span>Fornecedor</span>
+                        <select id="purchaseSupplier"></select>
+                    </label>
+                    <label class="field">
+                        <span>Numero da nota</span>
+                        <input type="text" id="purchaseInvoice" placeholder="NF-0001">
+                    </label>
+                    <div class="line-builder">
+                        <input type="text" id="purchaseBarcode" placeholder="Codigo do produto">
+                        <input type="number" id="purchaseQuantity" min="0.001" step="0.001" value="1">
+                        <input type="number" id="purchaseUnitCost" min="0" step="0.01" placeholder="Custo">
+                        <button id="btnAddPurchaseItem" class="btn secondary" type="button">Adicionar</button>
+                    </div>
+                    <div class="entry-lines" id="purchaseItemsList"></div>
+                    <div class="total-line">
+                        <span>Total da entrada</span>
+                        <strong id="purchaseTotal">R$ 0,00</strong>
+                    </div>
+                    <button id="btnConfirmPurchase" class="btn primary" type="button">Confirmar entrada</button>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-header">
+                        <h3>Entradas recentes</h3>
+                        <button id="btnRefreshPurchases" class="btn secondary" type="button">Atualizar</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nota</th>
+                                    <th>Fornecedor</th>
+                                    <th>Recebida em</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="purchaseEntriesBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+
+            <main class="tab-content report-layout" id="reports-tab">
+                <section class="panel">
+                    <div class="panel-header">
+                        <h3>Resumo de vendas</h3>
+                        <div class="toolbar">
+                            <input type="date" id="reportFrom">
+                            <input type="date" id="reportTo">
+                            <button id="btnLoadReports" class="btn secondary" type="button">Carregar</button>
+                        </div>
+                    </div>
+                    <section class="metric-grid compact-metrics">
+                        <article class="metric-panel"><span>Vendas</span><strong id="reportSalesCount">0</strong></article>
+                        <article class="metric-panel"><span>Receita liquida</span><strong id="reportNetRevenue">R$ 0,00</strong></article>
+                        <article class="metric-panel"><span>Descontos</span><strong id="reportDiscounts">R$ 0,00</strong></article>
+                    </section>
+                    <div class="bars" id="salesByHour"></div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-header">
+                        <h3>Movimentacoes de estoque</h3>
+                    </div>
+                    <div class="table-wrap compact-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Tipo</th>
+                                    <th>Qtd</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryMovementsBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </section>
 
     <script src="script.js"></script>
 </body>
