@@ -24,6 +24,9 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
     public DbSet<SalePayment> SalePayments => Set<SalePayment>();
     public DbSet<FiscalDocument> FiscalDocuments => Set<FiscalDocument>();
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<PurchaseEntry> PurchaseEntries => Set<PurchaseEntry>();
+    public DbSet<PurchaseEntryItem> PurchaseEntryItems => Set<PurchaseEntryItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -74,6 +77,7 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
             entity.HasKey(sale => sale.Id);
             entity.HasIndex(sale => sale.Number).IsUnique();
             entity.HasIndex(sale => sale.CreatedAt);
+            entity.HasIndex(sale => new { sale.Status, sale.CashSessionId });
             entity.Property(sale => sale.TerminalId).HasMaxLength(40).IsRequired();
             entity.Property(sale => sale.OperatorName).HasMaxLength(120).IsRequired();
             entity.Property(sale => sale.CustomerDocument).HasMaxLength(32);
@@ -150,6 +154,46 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
             entity.HasOne(movement => movement.Product)
                 .WithMany(product => product.InventoryMovements)
                 .HasForeignKey(movement => movement.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Supplier>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.HasIndex(s => s.Cnpj).IsUnique();
+            entity.Property(s => s.Name).HasMaxLength(160).IsRequired();
+            entity.Property(s => s.Cnpj).HasMaxLength(18);
+            entity.Property(s => s.ContactName).HasMaxLength(120);
+            entity.Property(s => s.Phone).HasMaxLength(20);
+            entity.Property(s => s.Email).HasMaxLength(120);
+        });
+
+        modelBuilder.Entity<PurchaseEntry>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.Property(e => e.InvoiceNumber).HasMaxLength(60).IsRequired();
+            entity.Property(e => e.Notes).HasMaxLength(400);
+            entity.Property(e => e.TotalCost).HasPrecision(18, 2);
+            entity.HasOne(e => e.Supplier)
+                .WithMany(s => s.PurchaseEntries)
+                .HasForeignKey(e => e.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PurchaseEntryItem>(entity =>
+        {
+            entity.HasKey(i => i.Id);
+            entity.Property(i => i.Quantity).HasPrecision(18, 3);
+            entity.Property(i => i.UnitCost).HasPrecision(18, 2);
+            entity.Property(i => i.TotalCost).HasPrecision(18, 2);
+            entity.HasOne(i => i.PurchaseEntry)
+                .WithMany(e => e.Items)
+                .HasForeignKey(i => i.PurchaseEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(i => i.Product)
+                .WithMany()
+                .HasForeignKey(i => i.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

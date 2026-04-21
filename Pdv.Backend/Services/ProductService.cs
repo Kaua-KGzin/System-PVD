@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Pdv.Backend.Contracts;
 using Pdv.Backend.Data;
@@ -133,6 +134,8 @@ public sealed class ProductService(PdvDbContext db)
         if (request.QuantityDelta == 0)
             return ServiceResult<ProductResponse>.Fail("A quantidade de ajuste precisa ser diferente de zero.");
 
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
         var product = await db.Products.FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
         if (product is null)
             return ServiceResult<ProductResponse>.Fail("Produto nao encontrado.", StatusCodes.Status404NotFound);
@@ -153,6 +156,7 @@ public sealed class ProductService(PdvDbContext db)
         });
 
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return ServiceResult<ProductResponse>.Ok(ProductResponse.From(product));
     }

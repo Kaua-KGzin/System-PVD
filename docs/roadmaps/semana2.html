@@ -35,6 +35,11 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  .check-done { color: var(--green); font-weight: 600; }
+  .check-done span { color: var(--green); }
+  .check-partial { color: var(--yellow); }
+  .check-partial span { color: var(--yellow); }
+
   body {
     background: var(--bg);
     color: var(--txt);
@@ -636,23 +641,23 @@ git push origin v0.1.0-demo</code>
 
 <div class="delivery-grid">
   <div class="delivery-card">
-    <div class="delivery-title">Backend (Kauã)</div>
-    <div class="check-row"><span>□</span> JWT auth funcional com roles</div>
-    <div class="check-row"><span>□</span> CRUD: Product, Category, Customer, Supplier</div>
-    <div class="check-row"><span>□</span> Fluxo de venda completo com estoque</div>
-    <div class="check-row"><span>□</span> Entrada de estoque (PurchaseEntry)</div>
-    <div class="check-row"><span>□</span> Cancelamento de venda com estorno</div>
-    <div class="check-row"><span>□</span> 3 endpoints de relatório</div>
-    <div class="check-row"><span>□</span> Dashboard stats em 1 chamada</div>
-    <div class="check-row"><span>□</span> Paginação em todos os lists</div>
-    <div class="check-row"><span>□</span> Rate limiting no /api</div>
-    <div class="check-row"><span>□</span> Health check /health</div>
-    <div class="check-row"><span>□</span> OpenAPI documentado</div>
+    <div class="delivery-title">Backend (Kauã) — <span style="color:var(--green)">10/11 ✓</span></div>
+    <div class="check-row check-done"><span>✓</span> JWT auth funcional com roles</div>
+    <div class="check-row check-partial"><span>◑</span> CRUD: Product ✓, Supplier ✓ — Category/Customer pendente</div>
+    <div class="check-row check-done"><span>✓</span> Fluxo de venda completo com estoque</div>
+    <div class="check-row check-done"><span>✓</span> Entrada de estoque (PurchaseEntry)</div>
+    <div class="check-row check-done"><span>✓</span> Cancelamento de venda com estorno</div>
+    <div class="check-row check-done"><span>✓</span> 4 endpoints de relatório (sales-summary, stock-alerts, cash-session-summary, inventory-movements)</div>
+    <div class="check-row check-done"><span>✓</span> Dashboard stats em 1 chamada</div>
+    <div class="check-row check-done"><span>✓</span> Paginação em todos os lists</div>
+    <div class="check-row check-done"><span>✓</span> Rate limiting no /api (100 req/min por usuário/IP)</div>
+    <div class="check-row check-done"><span>✓</span> Health check /health</div>
+    <div class="check-row check-done"><span>✓</span> OpenAPI documentado</div>
   </div>
   <div class="delivery-card">
     <div class="delivery-title">DB + Frontend + Geral</div>
-    <div class="check-row"><span>□</span> EF Migrations (não EnsureCreated)</div>
-    <div class="check-row"><span>□</span> Índices em todas colunas de busca</div>
+    <div class="check-row check-done"><span>✓</span> EF Migrations (não EnsureCreated)</div>
+    <div class="check-row check-done"><span>✓</span> Índices em todas colunas de busca</div>
     <div class="check-row"><span>□</span> Seed com dados realistas</div>
     <div class="check-row"><span>□</span> Login + rotas protegidas</div>
     <div class="check-row"><span>□</span> PDV screen (scan, cart, pagamento)</div>

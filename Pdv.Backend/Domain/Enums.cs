@@ -32,5 +32,6 @@ public enum InventoryMovementType
 {
     Sale,
     SaleCancellation,
+    PurchaseEntry,
     ManualAdjustment
 }

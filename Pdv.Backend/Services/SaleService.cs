@@ -6,7 +6,7 @@ using Pdv.Backend.Domain;
 
 namespace Pdv.Backend.Services;
 
-public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDocumentService)
+public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDocumentService, ILogger<SaleService> logger)
 {
     public async Task<PagedResponse<SaleResponse>> ListAsync(
         Guid? cashSessionId,
@@ -59,6 +59,9 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         if (validation is not null)
             return ServiceResult<SaleResponse>.Fail(validation);
 
+        // Serializable starts a write transaction early so stock and sale numbering are checked against a stable view.
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
         var cashSession = await db.CashSessions.FirstOrDefaultAsync(
             session => session.Id == request.CashSessionId, cancellationToken);
 
@@ -72,9 +75,6 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         var products = await db.Products
             .Where(product => barcodes.Contains(product.Barcode))
             .ToDictionaryAsync(product => product.Barcode, cancellationToken);
-
-        // IsolationLevel.Serializable = BEGIN IMMEDIATE in SQLite — acquires write lock upfront
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
         var counter = await db.SaleCounters.FirstAsync(cancellationToken);
         counter.LastNumber++;
@@ -175,6 +175,10 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
 
         await transaction.CommitAsync(cancellationToken);
 
+        logger.LogInformation(
+            "Sale created: Id={SaleId} Number={Number} Terminal={Terminal} Operator={Operator} Total={NetTotal:F2}",
+            sale.Id, sale.Number, sale.TerminalId, sale.OperatorName, sale.NetTotal);
+
         var createdSale = await LoadSaleAsync(sale.Id, asTracking: false, cancellationToken);
         return ServiceResult<SaleResponse>.Ok(SaleResponse.From(createdSale!));
     }
@@ -228,6 +232,10 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
+        logger.LogInformation(
+            "Sale cancelled: Id={SaleId} Number={Number} Reason={Reason}",
+            sale.Id, sale.Number, sale.CancellationReason);
+
         var cancelledSale = await LoadSaleAsync(sale.Id, asTracking: false, cancellationToken);
         return ServiceResult<SaleResponse>.Ok(SaleResponse.From(cancelledSale!));
     }
@@ -257,10 +265,10 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         if (request.SaleDiscountTotal < 0)
             return "Desconto da venda nao pode ser negativo.";
 
-        if (request.Items.Count == 0)
+        if (request.Items is null || request.Items.Count == 0)
             return "A venda precisa ter ao menos um item.";
 
-        if (request.Payments.Count == 0)
+        if (request.Payments is null || request.Payments.Count == 0)
             return "A venda precisa ter ao menos um pagamento.";
 
         foreach (var item in request.Items)
