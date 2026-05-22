@@ -32,7 +32,7 @@ export default function CatalogPage() {
     mutationFn: () => {
       const body = {
         barcode: form.barcode,
-        internalCode: null,
+        sku: null,
         name: form.name,
         unitOfMeasure: form.unitOfMeasure,
         unitPrice: parseFloat(form.unitPrice),

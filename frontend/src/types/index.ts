@@ -22,7 +22,7 @@ export interface AuthResponse {
 export interface Product {
   id: string
   barcode: string
-  internalCode: string | null
+  sku: string | null
   name: string
   unitOfMeasure: string
   unitPrice: number
@@ -105,21 +105,34 @@ export interface CashSession {
 export interface Supplier {
   id: string
   name: string
-  tradeName: string | null
-  document: string | null
+  cnpj: string | null
+  contactName: string | null
   phone: string | null
   email: string | null
   isActive: boolean
 }
 
+export interface TodaySalesStats {
+  count: number
+  total: number
+  averageTicket: number
+}
+
+export interface RecentSaleEntry {
+  id: string
+  number: number
+  terminalId: string
+  operatorName: string
+  netTotal: number
+  status: string
+  createdAt: string
+}
+
 export interface DashboardData {
-  todaySales: number
-  todayRevenue: number
-  todayAvgTicket: number
-  activeProducts: number
-  lowStockProducts: number
+  todaySales: TodaySalesStats
   openCashSessions: number
-  recentSales: Sale[]
+  lowStockProducts: number
+  recentSales: RecentSaleEntry[]
 }
 
 export interface SalesSummary {

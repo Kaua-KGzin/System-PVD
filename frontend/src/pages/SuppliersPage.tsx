@@ -10,7 +10,7 @@ export default function SuppliersPage() {
   const [page, setPage] = useState(1)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Supplier | null>(null)
-  const [form, setForm] = useState({ name: '', tradeName: '', document: '', phone: '', email: '' })
+  const [form, setForm] = useState({ name: '', cnpj: '', contactName: '', phone: '', email: '' })
 
   const { data, isLoading } = useQuery<PagedResponse<Supplier>>({
     queryKey: ['suppliers', search, page],
@@ -19,8 +19,16 @@ export default function SuppliersPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const body = { ...form, tradeName: form.tradeName || null, document: form.document || null, phone: form.phone || null, email: form.email || null }
-      return editing ? api.put(`/suppliers/${editing.id}`, { ...body, isActive: true }) : api.post('/suppliers', body)
+      const body = {
+        name: form.name,
+        cnpj: form.cnpj || null,
+        contactName: form.contactName || null,
+        phone: form.phone || null,
+        email: form.email || null,
+      }
+      return editing
+        ? api.put(`/suppliers/${editing.id}`, { ...body, isActive: true })
+        : api.post('/suppliers', body)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['suppliers'] })
@@ -31,13 +39,19 @@ export default function SuppliersPage() {
 
   const openCreate = () => {
     setEditing(null)
-    setForm({ name: '', tradeName: '', document: '', phone: '', email: '' })
+    setForm({ name: '', cnpj: '', contactName: '', phone: '', email: '' })
     setShowModal(true)
   }
 
   const openEdit = (s: Supplier) => {
     setEditing(s)
-    setForm({ name: s.name, tradeName: s.tradeName ?? '', document: s.document ?? '', phone: s.phone ?? '', email: s.email ?? '' })
+    setForm({
+      name: s.name,
+      cnpj: s.cnpj ?? '',
+      contactName: s.contactName ?? '',
+      phone: s.phone ?? '',
+      email: s.email ?? '',
+    })
     setShowModal(true)
   }
 
@@ -50,19 +64,25 @@ export default function SuppliersPage() {
 
       <div className="search-bar">
         <Search size={16} className="search-icon" />
-        <input placeholder="Buscar fornecedor..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
+        <input
+          placeholder="Buscar fornecedor..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+        />
       </div>
 
       <div className="card">
         {isLoading ? <p className="loading">Carregando...</p> : (
           <table className="table">
-            <thead><tr><th>Nome</th><th>Nome fantasia</th><th>CNPJ/CPF</th><th>Telefone</th><th>Email</th><th>Ações</th></tr></thead>
+            <thead>
+              <tr><th>Nome</th><th>CNPJ</th><th>Contato</th><th>Telefone</th><th>Email</th><th>Ações</th></tr>
+            </thead>
             <tbody>
               {data?.items.map((s) => (
                 <tr key={s.id}>
                   <td>{s.name}</td>
-                  <td>{s.tradeName ?? '—'}</td>
-                  <td className="font-mono text-sm">{s.document ?? '—'}</td>
+                  <td className="font-mono text-sm">{s.cnpj ?? '—'}</td>
+                  <td>{s.contactName ?? '—'}</td>
                   <td>{s.phone ?? '—'}</td>
                   <td>{s.email ?? '—'}</td>
                   <td><button className="btn-icon" onClick={() => openEdit(s)}><Edit2 size={15} /></button></td>
@@ -83,7 +103,7 @@ export default function SuppliersPage() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>{editing ? 'Editar fornecedor' : 'Novo fornecedor'}</h2>
             <div className="form-grid">
-              {[['name', 'Razão social *'], ['tradeName', 'Nome fantasia'], ['document', 'CNPJ / CPF'], ['phone', 'Telefone'], ['email', 'E-mail']].map(([key, label]) => (
+              {([['name', 'Razão social *'], ['cnpj', 'CNPJ'], ['contactName', 'Contato'], ['phone', 'Telefone'], ['email', 'E-mail']] as [string, string][]).map(([key, label]) => (
                 <div className="form-group" key={key}>
                   <label>{label}</label>
                   <input value={(form as any)[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
