@@ -73,5 +73,19 @@ public sealed record InventoryMovementEntry(
     decimal QuantityDelta,
     string Type,
     string? Notes,
-    DateTimeOffset CreatedAt
-);
+    DateTimeOffset CreatedAt);
+
+public sealed record TopProductEntry(
+    Guid ProductId,
+    string Barcode,
+    string Name,
+    decimal TotalQuantity,
+    int SaleCount,
+    decimal TotalRevenue);
+
+public sealed record RevenueByDayEntry(
+    DateOnly Date,
+    int SaleCount,
+    decimal GrossRevenue,
+    decimal Discounts,
+    decimal NetRevenue);

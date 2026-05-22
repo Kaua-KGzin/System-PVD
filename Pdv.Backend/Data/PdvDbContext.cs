@@ -7,16 +7,10 @@ namespace Pdv.Backend.Data;
 public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<SaleCounter> SaleCounters => Set<SaleCounter>();
-
-    private static readonly ValueConverter<DateTimeOffset, long> DateTimeOffsetConverter = new(
-        value => value.ToUniversalTime().Ticks,
-        value => new DateTimeOffset(new DateTime(value, DateTimeKind.Utc)));
-
-    private static readonly ValueConverter<DateTimeOffset?, long?> NullableDateTimeOffsetConverter = new(
-        value => value.HasValue ? value.Value.ToUniversalTime().Ticks : null,
-        value => value.HasValue ? new DateTimeOffset(new DateTime(value.Value, DateTimeKind.Utc)) : null);
-
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<CashSession> CashSessions => Set<CashSession>();
     public DbSet<Sale> Sales => Set<Sale>();
@@ -27,6 +21,14 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<PurchaseEntry> PurchaseEntries => Set<PurchaseEntry>();
     public DbSet<PurchaseEntryItem> PurchaseEntryItems => Set<PurchaseEntryItem>();
+
+    private static readonly ValueConverter<DateTimeOffset, long> DateTimeOffsetConverter = new(
+        value => value.ToUniversalTime().Ticks,
+        value => new DateTimeOffset(new DateTime(value, DateTimeKind.Utc)));
+
+    private static readonly ValueConverter<DateTimeOffset?, long?> NullableDateTimeOffsetConverter = new(
+        value => value.HasValue ? value.Value.ToUniversalTime().Ticks : null,
+        value => value.HasValue ? new DateTimeOffset(new DateTime(value.Value, DateTimeKind.Utc)) : null);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,9 +41,38 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
             entity.Property(u => u.Role).HasMaxLength(32).IsRequired();
         });
 
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.HasIndex(r => r.Token).IsUnique();
+            entity.Property(r => r.Token).HasMaxLength(128).IsRequired();
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<SaleCounter>(entity =>
         {
             entity.HasKey(c => c.Id);
+        });
+
+        modelBuilder.Entity<Category>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.HasIndex(c => c.Name).IsUnique();
+            entity.Property(c => c.Name).HasMaxLength(80).IsRequired();
+            entity.Property(c => c.Description).HasMaxLength(240);
+        });
+
+        modelBuilder.Entity<Customer>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.HasIndex(c => c.Document);
+            entity.Property(c => c.Name).HasMaxLength(160).IsRequired();
+            entity.Property(c => c.Document).HasMaxLength(20);
+            entity.Property(c => c.Phone).HasMaxLength(20);
+            entity.Property(c => c.Email).HasMaxLength(120);
         });
 
         modelBuilder.Entity<Product>(entity =>
@@ -56,6 +87,10 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
             entity.Property(product => product.UnitPrice).HasPrecision(18, 2);
             entity.Property(product => product.StockQuantity).HasPrecision(18, 3);
             entity.Property(product => product.MinStockQuantity).HasPrecision(18, 3);
+            entity.HasOne(product => product.Category)
+                .WithMany(c => c.Products)
+                .HasForeignKey(product => product.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<CashSession>(entity =>
@@ -93,6 +128,10 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
                 .WithMany(session => session.Sales)
                 .HasForeignKey(sale => sale.CashSessionId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(sale => sale.Customer)
+                .WithMany(c => c.Sales)
+                .HasForeignKey(sale => sale.CustomerId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<SaleItem>(entity =>
@@ -197,7 +236,11 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        ConfigureDateTimeOffsetConverters(modelBuilder);
+        // SQLite doesn't support DateTimeOffset natively — convert to UTC ticks
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+        {
+            ConfigureDateTimeOffsetConverters(modelBuilder);
+        }
     }
 
     private static void ConfigureDateTimeOffsetConverters(ModelBuilder modelBuilder)

@@ -9,6 +9,8 @@ public sealed class Sale
     public required string TerminalId { get; set; }
     public required string OperatorName { get; set; }
     public string? CustomerDocument { get; set; }
+    public Guid? CustomerId { get; set; }
+    public Customer? Customer { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? CancelledAt { get; set; }
     public string? CancellationReason { get; set; }

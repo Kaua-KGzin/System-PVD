@@ -79,6 +79,13 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         var counter = await db.SaleCounters.FirstAsync(cancellationToken);
         counter.LastNumber++;
 
+        if (request.CustomerId.HasValue)
+        {
+            var customer = await db.Customers.FindAsync([request.CustomerId.Value], cancellationToken);
+            if (customer is null)
+                return ServiceResult<SaleResponse>.Fail("Cliente nao encontrado.", StatusCodes.Status404NotFound);
+        }
+
         var sale = new Sale
         {
             Number = counter.LastNumber,
@@ -86,6 +93,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             TerminalId = cashSession.TerminalId,
             OperatorName = request.OperatorName.Trim(),
             CustomerDocument = string.IsNullOrWhiteSpace(request.CustomerDocument) ? null : request.CustomerDocument.Trim(),
+            CustomerId = request.CustomerId,
             SaleDiscountTotal = request.SaleDiscountTotal
         };
 

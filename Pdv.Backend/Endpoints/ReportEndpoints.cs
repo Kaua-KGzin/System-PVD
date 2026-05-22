@@ -54,5 +54,29 @@ public static class ReportEndpoints
                 productId, from, to, resolvedPage, resolvedPageSize, ct);
             return Results.Ok(result);
         });
+
+        group.MapGet("/top-products", async (
+            DateTimeOffset? from,
+            DateTimeOffset? to,
+            int limit,
+            ReportService reportService,
+            CancellationToken ct) =>
+        {
+            var resolvedFrom = from ?? DateTimeOffset.UtcNow.Date;
+            var resolvedTo = to ?? DateTimeOffset.UtcNow;
+            var resolvedLimit = limit is < 1 or > 50 ? 10 : limit;
+            return Results.Ok(await reportService.GetTopProductsAsync(resolvedFrom, resolvedTo, resolvedLimit, ct));
+        });
+
+        group.MapGet("/revenue-by-day", async (
+            DateTimeOffset? from,
+            DateTimeOffset? to,
+            ReportService reportService,
+            CancellationToken ct) =>
+        {
+            var resolvedFrom = from ?? DateTimeOffset.UtcNow.AddDays(-30);
+            var resolvedTo = to ?? DateTimeOffset.UtcNow;
+            return Results.Ok(await reportService.GetRevenueByDayAsync(resolvedFrom, resolvedTo, ct));
+        });
     }
 }

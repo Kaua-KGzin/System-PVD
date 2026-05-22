@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -75,13 +76,23 @@ builder.Services.AddHealthChecks().AddDbContextCheck<PdvDbContext>();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
 });
 
+var dbProvider = builder.Configuration["DatabaseProvider"] ?? "Sqlite";
 builder.Services.AddDbContext<PdvDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("PdvDatabase")
-        ?? "Data Source=pdv.db";
-    options.UseSqlite(connectionString);
+    var connectionString = builder.Configuration.GetConnectionString("PdvDatabase");
+
+    if (dbProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+    {
+        options.UseNpgsql(connectionString ?? throw new InvalidOperationException(
+            "ConnectionStrings:PdvDatabase is required for PostgreSQL."));
+    }
+    else
+    {
+        options.UseSqlite(connectionString ?? "Data Source=pdv.db");
+    }
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -101,10 +112,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin"));
+
+    options.AddPolicy("AdminOrManager", policy =>
+        policy.RequireRole("Admin", "Manager"));
+});
 
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<CashRegisterService>();
 builder.Services.AddScoped<FiscalDocumentService>();
 builder.Services.AddScoped<SaleService>();
@@ -133,6 +154,8 @@ app.UseAuthorization();
 app.MapHealthChecks("/health");
 app.MapAuthEndpoints();
 app.MapProductsEndpoints();
+app.MapCategoryEndpoints();
+app.MapCustomerEndpoints();
 app.MapCashRegisterEndpoints();
 app.MapSalesEndpoints();
 app.MapFiscalDocumentEndpoints();
@@ -140,6 +163,7 @@ app.MapReportEndpoints();
 app.MapDashboardEndpoints();
 app.MapSupplierEndpoints();
 app.MapPurchaseEntryEndpoints();
+app.MapUserEndpoints();
 
 await DatabaseSeeder.SeedAsync(app.Services);
 

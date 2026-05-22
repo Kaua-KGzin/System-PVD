@@ -205,6 +205,57 @@ public sealed class ReportService(PdvDbContext db)
             .ToArrayAsync(ct);
     }
 
+    public async Task<TopProductEntry[]> GetTopProductsAsync(
+        DateTimeOffset from,
+        DateTimeOffset to,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var rows = await db.SaleItems.AsNoTracking()
+            .Where(i => i.Sale!.Status == SaleStatus.Completed
+                     && i.Sale.CreatedAt >= from
+                     && i.Sale.CreatedAt <= to)
+            .Select(i => new { i.ProductId, i.Barcode, i.ProductName, i.Quantity, i.NetTotal, i.SaleId })
+            .ToArrayAsync(cancellationToken);
+
+        return rows
+            .GroupBy(i => new { i.ProductId, i.Barcode, i.ProductName })
+            .Select(g => new TopProductEntry(
+                g.Key.ProductId,
+                g.Key.Barcode,
+                g.Key.ProductName,
+                g.Sum(i => i.Quantity),
+                g.Select(i => i.SaleId).Distinct().Count(),
+                g.Sum(i => i.NetTotal)))
+            .OrderByDescending(e => e.TotalRevenue)
+            .Take(limit)
+            .ToArray();
+    }
+
+    public async Task<RevenueByDayEntry[]> GetRevenueByDayAsync(
+        DateTimeOffset from,
+        DateTimeOffset to,
+        CancellationToken cancellationToken)
+    {
+        var sales = await db.Sales.AsNoTracking()
+            .Where(s => s.Status == SaleStatus.Completed
+                     && s.CreatedAt >= from
+                     && s.CreatedAt <= to)
+            .Select(s => new { s.CreatedAt, s.GrossTotal, s.ItemDiscountTotal, s.SaleDiscountTotal, s.NetTotal })
+            .ToArrayAsync(cancellationToken);
+
+        return sales
+            .GroupBy(s => DateOnly.FromDateTime(s.CreatedAt.ToLocalTime().DateTime))
+            .Select(g => new RevenueByDayEntry(
+                g.Key,
+                g.Count(),
+                g.Sum(s => s.GrossTotal),
+                g.Sum(s => s.ItemDiscountTotal + s.SaleDiscountTotal),
+                g.Sum(s => s.NetTotal)))
+            .OrderBy(e => e.Date)
+            .ToArray();
+    }
+
     public async Task<PagedResponse<InventoryMovementEntry>> GetInventoryMovementsAsync(
         Guid? productId,
         DateTimeOffset? from,

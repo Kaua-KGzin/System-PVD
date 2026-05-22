@@ -2,6 +2,7 @@ const API_URL = window.PDV_API_URL || 'http://localhost:5235';
 
 const state = {
     token: null,
+    refreshToken: null,
     cashSessionId: null,
     operatorName: '',
     terminalId: 'PDV-01',
@@ -9,15 +10,59 @@ const state = {
     paymentMethod: 'Cash',
     catalogPage: 1,
     catalogSearch: '',
+    catalogItems: [],
     historyPage: 1,
     suppliersPage: 1,
     supplierSearch: '',
     suppliers: [],
-    purchaseItems: []
+    purchaseItems: [],
+    lastSalesSummary: null,
+    dashboardTimer: null,
+    expectedClosingAmount: 0
 };
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+const STORAGE_KEY = 'pdv.frontend.v4';
+
+const saveSession = () => {
+    const snapshot = {
+        token: state.token,
+        refreshToken: state.refreshToken,
+        cashSessionId: state.cashSessionId,
+        operatorName: state.operatorName,
+        terminalId: state.terminalId,
+        cart: state.cart
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+};
+
+const restoreSession = () => {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const snapshot = JSON.parse(raw);
+        state.token = snapshot.token || null;
+        state.refreshToken = snapshot.refreshToken || null;
+        state.cashSessionId = snapshot.cashSessionId || null;
+        state.operatorName = snapshot.operatorName || '';
+        state.terminalId = snapshot.terminalId || 'PDV-01';
+        state.cart = Array.isArray(snapshot.cart) ? snapshot.cart : [];
+        $('#operatorName').value = state.operatorName;
+        $('#terminalId').value = state.terminalId;
+    } catch {
+        localStorage.removeItem(STORAGE_KEY);
+    }
+};
+
+const clearSession = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    state.token = null;
+    state.refreshToken = null;
+    state.cashSessionId = null;
+    state.cart = [];
+};
 
 const formatCurrency = (value) =>
     (Number(value) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -37,6 +82,24 @@ const makeDateTimeOffset = (dateValue, endOfDay = false) => {
     const time = endOfDay ? 'T23:59:59.999' : 'T00:00:00.000';
     return new Date(`${dateValue}${time}`).toISOString();
 };
+
+const getCartTotals = () => {
+    const gross = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const itemDiscounts = state.cart.reduce((sum, item) => sum + (Number(item.unitDiscount) || 0) * item.quantity, 0);
+    const saleDiscount = Number($('#saleDiscount')?.value) || 0;
+    const net = Math.max(0, gross - itemDiscounts - saleDiscount);
+    return { gross, itemDiscounts, saleDiscount, net };
+};
+
+const getPayments = () =>
+    $$('[data-payment-method]')
+        .map((input) => ({
+            method: input.dataset.paymentMethod,
+            amount: Number(input.value) || 0
+        }))
+        .filter((payment) => payment.amount > 0);
+
+const getPaidAmount = () => getPayments().reduce((sum, payment) => sum + payment.amount, 0);
 
 const showToast = (message, type = 'success') => {
     const toast = $('#toast');
@@ -77,6 +140,8 @@ const authFetch = async (endpoint, options = {}) => {
 
     const response = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
     if (response.status === 401) {
+        clearSession();
+        refreshSessionHeader();
         showScreen('login-screen');
         throw new Error('Sessao expirada. Faca login novamente.');
     }
@@ -98,7 +163,7 @@ const showScreen = (screenId) => {
 
 const createCell = (content, className) => {
     const td = document.createElement('td');
-    if (className) td.className = className;
+    td.className = className ? `p-3 border-b border-slate-100 ${className}` : 'p-3 border-b border-slate-100';
     if (content instanceof Node) {
         td.appendChild(content);
     } else {
@@ -109,7 +174,7 @@ const createCell = (content, className) => {
 
 const appendRow = (tbody, cells, className) => {
     const tr = document.createElement('tr');
-    if (className) tr.className = className;
+    tr.className = className ? `hover:bg-slate-50 transition-colors ${className}` : 'hover:bg-slate-50 transition-colors group';
     cells.forEach((cell) => {
         const descriptor = cell && typeof cell === 'object' && !(cell instanceof Node) && 'value' in cell
             ? cell
@@ -152,6 +217,10 @@ const setActiveTab = (tabId) => {
     $$('.tab-btn').forEach((button) => button.classList.toggle('active', button.dataset.tab === tabId));
     $$('.tab-content').forEach((content) => content.classList.toggle('active', content.id === tabId));
     $('#viewTitle').textContent = titles[tabId] || 'PDV Pro';
+    window.clearInterval(state.dashboardTimer);
+    state.dashboardTimer = tabId === 'dashboard-tab'
+        ? window.setInterval(loadDashboard, 60000)
+        : null;
 
     const loaders = {
         'dashboard-tab': loadDashboard,
@@ -172,61 +241,117 @@ const refreshSessionHeader = () => {
     $('#lblTerminal').textContent = state.terminalId || 'Terminal';
     $('#badgeSessionState').textContent = state.cashSessionId ? 'Caixa aberto' : 'Sem caixa';
     $('#badgeSessionState').className = state.cashSessionId ? 'badge success' : 'badge warning';
+    if (state.token) saveSession();
 };
 
 const renderCart = () => {
     const cartItems = $('#cartItems');
     cartItems.replaceChildren();
 
-    let total = 0;
     let count = 0;
 
     state.cart.forEach((item, index) => {
-        const itemTotal = item.price * item.quantity;
-        total += itemTotal;
+        const unitDiscount = Number(item.unitDiscount) || 0;
+        const itemTotal = Math.max(0, (item.price - unitDiscount) * item.quantity);
         count += item.quantity;
 
         const row = document.createElement('li');
-        row.className = 'cart-grid cart-line';
+        row.className = 'px-md py-3 grid grid-cols-12 gap-2 items-center text-sm group hover:bg-slate-50 cursor-pointer rounded-lg mx-2 my-1 border border-transparent hover:border-slate-200 transition-colors';
 
         const productCell = document.createElement('span');
+        productCell.className = 'col-span-4 flex flex-col justify-center';
+        
         const name = document.createElement('strong');
+        name.className = 'font-bold text-slate-900 truncate pr-2 tracking-tight block';
         name.textContent = item.name;
+        
         const code = document.createElement('small');
+        code.className = 'bg-indigo-50 text-indigo-700 text-[10px] px-1 rounded font-bold w-max mt-1 block';
         code.textContent = item.barcode;
         productCell.append(name, code);
 
         const quantityCell = document.createElement('span');
-        const qty = document.createElement('button');
-        qty.className = 'mini-control';
-        qty.type = 'button';
-        qty.textContent = String(item.quantity);
-        qty.title = 'Remover uma unidade';
-        qty.addEventListener('click', () => {
-            item.quantity -= 1;
-            if (item.quantity <= 0) state.cart.splice(index, 1);
+        quantityCell.className = 'col-span-2 px-2 flex justify-center';
+
+        const qty = document.createElement('input');
+        qty.className = 'cart-input text-center';
+        qty.type = 'number';
+        qty.min = '0.001';
+        qty.step = '0.001';
+        qty.value = String(item.quantity);
+        qty.addEventListener('input', () => {
+            const next = Number(qty.value);
+            if (Number.isNaN(next) || next <= 0) return;
+            item.quantity = next;
             renderCart();
         });
         quantityCell.appendChild(qty);
 
         const priceCell = document.createElement('span');
+        priceCell.className = 'col-span-2 text-right text-slate-500 flex items-center justify-end font-medium';
         priceCell.textContent = formatCurrency(item.price);
+
+        const discountCell = document.createElement('span');
+        discountCell.className = 'col-span-2 px-2 flex justify-center';
+        const discount = document.createElement('input');
+        discount.className = 'cart-input text-center';
+        discount.type = 'number';
+        discount.min = '0';
+        discount.step = '0.01';
+        discount.value = String(unitDiscount);
+        discount.addEventListener('input', () => {
+            item.unitDiscount = Math.max(0, Number(discount.value) || 0);
+            renderCart();
+        });
+        discountCell.appendChild(discount);
+        
         const totalCell = document.createElement('span');
+        totalCell.className = 'col-span-2 text-right font-bold text-slate-900 pr-2 flex items-center justify-end';
         totalCell.textContent = formatCurrency(itemTotal);
 
-        row.append(productCell, quantityCell, priceCell, totalCell);
+        const removeCell = document.createElement('button');
+        removeCell.type = 'button';
+        removeCell.className = 'text-slate-400 hover:text-red-600 absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity';
+        removeCell.innerHTML = '<span class="material-symbols-outlined text-[18px]">close</span>';
+        removeCell.addEventListener('click', () => {
+            state.cart.splice(index, 1);
+            renderCart();
+        });
+        row.style.position = 'relative';
+        row.append(productCell, quantityCell, priceCell, discountCell, totalCell, removeCell);
         cartItems.appendChild(row);
     });
 
     if (state.cart.length === 0) {
         const empty = document.createElement('li');
-        empty.className = 'empty-cart';
-        empty.textContent = 'Nenhum item no carrinho.';
+        empty.className = 'empty-note p-8';
+        empty.textContent = 'Abertura rápida com enter ou bipagem (Nenhum produto)';
         cartItems.appendChild(empty);
     }
 
     $('#lblItemCount').textContent = String(count);
-    $('#lblTotal').textContent = formatCurrency(total);
+    updatePaymentSummary();
+    saveSession();
+};
+
+const updatePaymentSummary = () => {
+    const totals = getCartTotals();
+    const paid = getPaidAmount();
+    const remaining = Math.max(0, totals.net - paid);
+    const change = Math.max(0, paid - totals.net);
+    $('#lblTotal').textContent = formatCurrency(totals.net);
+    $('#lblPaid').textContent = formatCurrency(paid);
+    $('#lblRemaining').textContent = formatCurrency(remaining);
+    $('#lblChange').textContent = formatCurrency(change);
+    $('#btnFinalize').disabled = totals.net <= 0 || paid < totals.net;
+};
+
+const fillSinglePayment = (method) => {
+    $$('[data-payment-method]').forEach((input) => {
+        input.value = input.dataset.paymentMethod === method ? getCartTotals().net.toFixed(2) : '0';
+    });
+    state.paymentMethod = method;
+    updatePaymentSummary();
 };
 
 const addProductToCart = async () => {
@@ -247,7 +372,8 @@ const addProductToCart = async () => {
                 barcode: product.barcode,
                 name: product.name,
                 price: product.unitPrice,
-                quantity: 1
+                quantity: 1,
+                unitDiscount: 0
             });
         }
 
@@ -264,24 +390,37 @@ const addProductToCart = async () => {
 };
 
 const finalizeSale = async () => {
-    const totalAmount = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    if (totalAmount <= 0) {
+    const totals = getCartTotals();
+    const payments = getPayments();
+    const paidAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+    if (!state.cashSessionId) {
+        showToast('Abra um caixa antes de vender.', 'error');
+        return;
+    }
+
+    if (totals.net <= 0) {
         showToast('Carrinho vazio.', 'error');
+        return;
+    }
+
+    if (paidAmount < totals.net) {
+        showToast('Pagamento insuficiente.', 'error');
         return;
     }
 
     const payload = {
         cashSessionId: state.cashSessionId,
         operatorName: state.operatorName,
-        customerDocument: null,
-        saleDiscountTotal: 0,
+        customerDocument: $('#customerDocument').value.trim() || null,
+        saleDiscountTotal: totals.saleDiscount,
         issueFiscalDocument: true,
         items: state.cart.map((item) => ({
             barcode: item.barcode,
             quantity: item.quantity,
-            unitDiscount: 0
+            unitDiscount: Number(item.unitDiscount) || 0
         })),
-        payments: [{ method: state.paymentMethod, amount: totalAmount }]
+        payments
     };
 
     const button = $('#btnFinalize');
@@ -293,9 +432,13 @@ const finalizeSale = async () => {
         });
         showToast(`Venda #${sale.number} concluida.`);
         state.cart = [];
+        $('#saleDiscount').value = '0';
+        $('#customerDocument').value = '';
+        $$('[data-payment-method]').forEach((input) => input.value = '0');
         renderCart();
         $('#paymentSection').classList.add('hidden');
         $('#btnCheckout').classList.remove('hidden');
+        loadHistory(1);
         loadDashboard();
     } catch (error) {
         showToast(error.message, 'error');
@@ -307,15 +450,23 @@ const finalizeSale = async () => {
 
 const loadDashboard = async () => {
     try {
-        const [dashboard, stockAlerts] = await Promise.all([
+        const from = todayInputValue();
+        const reportQuery = new URLSearchParams({
+            from: makeDateTimeOffset(from),
+            to: makeDateTimeOffset(from, true)
+        });
+        const [dashboard, stockAlerts, summary] = await Promise.all([
             fetchJson('/api/dashboard'),
-            fetchJson('/api/reports/stock-alerts')
+            fetchJson('/api/reports/stock-alerts'),
+            fetchJson(`/api/reports/sales-summary?${reportQuery}`)
         ]);
 
         $('#kpiSalesCount').textContent = dashboard.todaySales.count;
         $('#kpiSalesTotal').textContent = formatCurrency(dashboard.todaySales.total);
         $('#kpiAvgTicket').textContent = formatCurrency(dashboard.todaySales.averageTicket);
+        $('#kpiOpenCashSessions').textContent = dashboard.openCashSessions;
         $('#kpiLowStock').textContent = dashboard.lowStockProducts;
+        renderSalesByHour(summary.byHour || [], '#dashboardSalesByHour');
 
         const recentBody = $('#recentSalesBody');
         recentBody.replaceChildren();
@@ -349,7 +500,7 @@ const loadDashboard = async () => {
 
 const loadCatalog = async (page) => {
     const tbody = $('#catalogTableBody');
-    setTableMessage(tbody, 6, 'Carregando...');
+    setTableMessage(tbody, 7, 'Carregando...');
 
     try {
         const query = new URLSearchParams({ page, pageSize: 15 });
@@ -357,22 +508,139 @@ const loadCatalog = async (page) => {
         const data = await fetchJson(`/api/products?${query}`);
 
         state.catalogPage = data.page;
+        state.catalogItems = data.items;
         tbody.replaceChildren();
         if (!data.items.length) {
-            setTableMessage(tbody, 6, 'Nenhum produto encontrado.');
+            setTableMessage(tbody, 7, 'Nenhum produto encontrado.');
         } else {
-            data.items.forEach((product) => appendRow(tbody, [
-                product.name,
-                product.barcode,
-                product.unitOfMeasure,
-                { value: formatCurrency(product.unitPrice), className: 'money' },
-                product.stockQuantity,
-                product.minStockQuantity
-            ]));
+            data.items.forEach((product) => {
+                const actions = document.createElement('div');
+                actions.className = 'flex justify-end gap-2';
+                const edit = document.createElement('button');
+                edit.type = 'button';
+                edit.className = 'px-3 py-1 border border-slate-300 rounded text-slate-600 text-xs font-bold hover:bg-slate-50';
+                edit.textContent = 'Editar';
+                edit.addEventListener('click', () => openProductModal(product));
+                const adjust = document.createElement('button');
+                adjust.type = 'button';
+                adjust.className = 'px-3 py-1 border border-amber-300 rounded text-amber-700 text-xs font-bold hover:bg-amber-50';
+                adjust.textContent = 'Ajustar';
+                adjust.addEventListener('click', () => openProductModal(product, true));
+                actions.append(edit, adjust);
+
+                appendRow(tbody, [
+                    product.name,
+                    product.barcode,
+                    product.unitOfMeasure,
+                    { value: formatCurrency(product.unitPrice), className: 'money' },
+                    product.stockQuantity,
+                    product.minStockQuantity,
+                    actions
+                ]);
+            });
         }
         setPagination($('#catalogPageInfo'), $('#btnCatalogPrev'), $('#btnCatalogNext'), data);
     } catch (error) {
-        setTableMessage(tbody, 6, error.message, 'error-cell');
+        setTableMessage(tbody, 7, error.message, 'error-cell');
+    }
+};
+
+const openProductModal = (product = null, focusAdjustment = false) => {
+    $('#productForm').reset();
+    $('#productId').value = product?.id || '';
+    $('#productFormTitle').textContent = product ? 'Editar produto' : 'Novo produto';
+    $('#productName').value = product?.name || '';
+    $('#productBarcode').value = product?.barcode || '';
+    $('#productSku').value = product?.sku || '';
+    $('#productUnit').value = product?.unitOfMeasure || 'UN';
+    $('#productPrice').value = product?.unitPrice ?? '';
+    $('#productStock').value = product?.stockQuantity ?? 0;
+    $('#productStock').disabled = Boolean(product);
+    $('#productMinStock').value = product?.minStockQuantity ?? 0;
+    $('#productActive').checked = product ? Boolean(product.isActive) : true;
+    $('#stockDelta').value = '';
+    $('#stockReason').value = '';
+    $('#btnAdjustStock').disabled = !product;
+    $('#stockAdjustmentBox').classList.toggle('hidden', !product);
+    $('#productModal').classList.remove('hidden');
+    (focusAdjustment ? $('#stockDelta') : $('#productName')).focus();
+};
+
+const closeProductModal = () => {
+    $('#productModal').classList.add('hidden');
+};
+
+const saveProduct = async (event) => {
+    event.preventDefault();
+    const id = $('#productId').value;
+    const payload = {
+        barcode: $('#productBarcode').value.trim(),
+        sku: $('#productSku').value.trim() || null,
+        name: $('#productName').value.trim(),
+        unitOfMeasure: $('#productUnit').value.trim() || 'UN',
+        unitPrice: Number($('#productPrice').value),
+        minStockQuantity: Number($('#productMinStock').value),
+        isActive: $('#productActive').checked
+    };
+
+    if (!payload.barcode || !payload.name || Number.isNaN(payload.unitPrice) || Number.isNaN(payload.minStockQuantity)) {
+        showToast('Preencha produto, codigo, preco e estoque minimo.', 'error');
+        return;
+    }
+
+    const button = $('#btnSaveProduct');
+    setBusy(button, true, 'Salvando...');
+    try {
+        if (id) {
+            await fetchJson(`/api/products/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(payload)
+            });
+        } else {
+            await fetchJson('/api/products', {
+                method: 'POST',
+                body: JSON.stringify({
+                    ...payload,
+                    stockQuantity: Number($('#productStock').value) || 0
+                })
+            });
+        }
+
+        showToast('Produto salvo.');
+        closeProductModal();
+        loadCatalog(state.catalogPage);
+        loadDashboard();
+    } catch (error) {
+        showToast(error.message, 'error');
+    } finally {
+        setBusy(button, false);
+    }
+};
+
+const adjustProductStock = async () => {
+    const id = $('#productId').value;
+    const quantityDelta = Number($('#stockDelta').value);
+    const reason = $('#stockReason').value.trim();
+    if (!id || Number.isNaN(quantityDelta) || quantityDelta === 0) {
+        showToast('Informe um delta de estoque diferente de zero.', 'error');
+        return;
+    }
+
+    const button = $('#btnAdjustStock');
+    setBusy(button, true, 'Ajustando...');
+    try {
+        await fetchJson(`/api/products/${id}/stock-adjustments`, {
+            method: 'POST',
+            body: JSON.stringify({ quantityDelta, reason: reason || null })
+        });
+        showToast('Estoque ajustado.');
+        closeProductModal();
+        loadCatalog(state.catalogPage);
+        loadDashboard();
+    } catch (error) {
+        showToast(error.message, 'error');
+    } finally {
+        setBusy(button, false);
     }
 };
 
@@ -391,7 +659,7 @@ const loadHistory = async (page) => {
         } else {
             data.items.forEach((sale) => {
                 const cancelButton = document.createElement('button');
-                cancelButton.className = 'btn tiny danger-ghost';
+                cancelButton.className = 'px-3 py-1 bg-red-50 text-red-600 rounded text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-50 disabled:grayscale';
                 cancelButton.type = 'button';
                 cancelButton.textContent = sale.status === 'Cancelled' ? 'Cancelada' : 'Cancelar';
                 cancelButton.disabled = sale.status === 'Cancelled';
@@ -431,13 +699,30 @@ const cancelSale = async (saleId) => {
 };
 
 const updateCashClosingUI = async () => {
+    if (!state.cashSessionId) {
+        $('#summaryOpening').textContent = formatCurrency(0);
+        $('#summaryExpected').textContent = formatCurrency(0);
+        $('#summaryDifference').textContent = formatCurrency(0);
+        return;
+    }
+
     try {
         const session = await fetchJson(`/api/cash-sessions/${state.cashSessionId}`);
+        state.expectedClosingAmount = Number(session.expectedClosingAmount) || 0;
         $('#summaryOpening').textContent = formatCurrency(session.openingAmount);
         $('#summaryExpected').textContent = formatCurrency(session.expectedClosingAmount);
+        updateClosingDifference();
     } catch (error) {
         showToast(error.message, 'error');
     }
+};
+
+const updateClosingDifference = () => {
+    const counted = Number($('#closingAmount').value) || 0;
+    const difference = counted - (Number(state.expectedClosingAmount) || 0);
+    const target = $('#summaryDifference');
+    target.textContent = formatCurrency(difference);
+    target.className = difference === 0 ? 'text-lg text-green-700' : 'text-lg text-red-600';
 };
 
 const closeCashSession = async () => {
@@ -462,7 +747,11 @@ const closeCashSession = async () => {
         showToast(`Caixa fechado. Diferenca: ${formatCurrency(closed.closingDifference)}.`);
         state.cashSessionId = null;
         state.cart = [];
+        state.expectedClosingAmount = 0;
+        $('#closingAmount').value = '';
+        $('#closingNotes').value = '';
         refreshSessionHeader();
+        renderCart();
         showScreen('setup-screen');
     } catch (error) {
         showToast(error.message, 'error');
@@ -488,7 +777,7 @@ const loadSuppliers = async (page) => {
         } else {
             data.items.forEach((supplier) => {
                 const editButton = document.createElement('button');
-                editButton.className = 'btn tiny ghost';
+                editButton.className = 'px-3 py-1 border border-slate-300 rounded text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors';
                 editButton.type = 'button';
                 editButton.textContent = 'Editar';
                 editButton.addEventListener('click', () => fillSupplierForm(supplier));
@@ -658,7 +947,7 @@ const renderPurchaseItems = () => {
         amount.textContent = formatCurrency(lineTotal);
 
         const remove = document.createElement('button');
-        remove.className = 'btn tiny ghost';
+        remove.className = 'px-3 py-1 border border-slate-300 rounded text-error text-[10px] font-bold hover:bg-red-50 hover:border-error transition-colors uppercase';
         remove.type = 'button';
         remove.textContent = 'Remover';
         remove.addEventListener('click', () => {
@@ -754,24 +1043,28 @@ const loadReports = async () => {
             from: makeDateTimeOffset(from),
             to: makeDateTimeOffset(to, true)
         });
+        const terminalId = $('#reportTerminal').value.trim();
+        if (terminalId) query.set('terminalId', terminalId);
 
         const [summary, movements] = await Promise.all([
             fetchJson(`/api/reports/sales-summary?${query}`),
             fetchJson('/api/reports/inventory-movements?page=1&pageSize=20')
         ]);
 
+        state.lastSalesSummary = summary;
         $('#reportSalesCount').textContent = summary.totalSales;
         $('#reportNetRevenue').textContent = formatCurrency(summary.netRevenue);
         $('#reportDiscounts').textContent = formatCurrency(summary.totalDiscounts);
-        renderSalesByHour(summary.byHour || []);
+        renderSalesByHour(summary.byHour || [], '#salesByHour');
+        renderPaymentBreakdown(summary.byPaymentMethod || []);
         renderInventoryMovements(movements.items || []);
     } catch (error) {
         showToast(error.message, 'error');
     }
 };
 
-const renderSalesByHour = (entries) => {
-    const container = $('#salesByHour');
+const renderSalesByHour = (entries, selector = '#salesByHour') => {
+    const container = $(selector);
     container.replaceChildren();
 
     if (!entries.length) {
@@ -799,6 +1092,48 @@ const renderSalesByHour = (entries) => {
         bar.append(label, track, value);
         container.appendChild(bar);
     });
+};
+
+const renderPaymentBreakdown = (items) => {
+    const tbody = $('#paymentBreakdownBody');
+    tbody.replaceChildren();
+    if (!items.length) {
+        setTableMessage(tbody, 3, 'Sem pagamentos no periodo.');
+        return;
+    }
+
+    items.forEach((item) => appendRow(tbody, [
+        item.method,
+        { value: item.count, className: 'text-center' },
+        { value: formatCurrency(item.total), className: 'money text-right' }
+    ]));
+};
+
+const exportReportsCsv = () => {
+    if (!state.lastSalesSummary) {
+        showToast('Carregue o relatorio antes de exportar.', 'warning');
+        return;
+    }
+
+    const rows = [
+        ['Metrica', 'Valor'],
+        ['Total de vendas', state.lastSalesSummary.totalSales],
+        ['Receita total', state.lastSalesSummary.totalRevenue],
+        ['Descontos', state.lastSalesSummary.totalDiscounts],
+        ['Receita liquida', state.lastSalesSummary.netRevenue],
+        [],
+        ['Metodo', 'Quantidade', 'Total'],
+        ...(state.lastSalesSummary.byPaymentMethod || []).map((item) => [item.method, item.count, item.total])
+    ];
+
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `relatorio-pdv-${todayInputValue()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
 };
 
 const renderInventoryMovements = (items) => {
@@ -838,9 +1173,13 @@ const login = async (event) => {
 
         if (!response.ok) throw new Error(await readApiError(response));
         const data = await response.json();
-        state.token = data.token;
-        state.operatorName = data.username;
-        $('#operatorName').value = data.username;
+        // Backend .NET pode serializar em PascalCase ou camelCase dependendo da configuração
+        state.token = data.token ?? data.Token;
+        state.refreshToken = data.refreshToken ?? data.RefreshToken ?? null;
+        const resolvedUsername = data.username ?? data.Username ?? '';
+        state.operatorName = resolvedUsername;
+        $('#operatorName').value = resolvedUsername;
+        saveSession();
         showScreen('setup-screen');
         showToast('Login realizado.');
     } catch (error) {
@@ -881,6 +1220,7 @@ const openRegister = async (event) => {
         state.operatorName = session.operatorName;
         state.terminalId = session.terminalId;
         refreshSessionHeader();
+        saveSession();
         showScreen('app-container');
         setActiveTab('dashboard-tab');
     } catch (error) {
@@ -890,12 +1230,58 @@ const openRegister = async (event) => {
     }
 };
 
+const bindShortcuts = () => {
+    document.addEventListener('keydown', (event) => {
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+            if (event.key !== 'Escape' && !event.key.startsWith('F')) return;
+        }
+
+        const map = {
+            F1: () => setActiveTab('dashboard-tab'),
+            F2: () => setActiveTab('pdv-tab'),
+            F9: () => $('#btnCheckout').click(),
+            F10: () => $('#btnFinalize').click(),
+            Escape: () => {
+                closeProductModal();
+                $('#paymentSection').classList.add('hidden');
+                $('#btnCheckout').classList.remove('hidden');
+            }
+        };
+
+        if (map[event.key]) {
+            event.preventDefault();
+            map[event.key]();
+        }
+    });
+};
+
+const bootstrapProtectedState = () => {
+    restoreSession();
+    refreshSessionHeader();
+    renderCart();
+    renderPurchaseItems();
+
+    if (!state.token) {
+        showScreen('login-screen');
+        return;
+    }
+
+    if (state.cashSessionId) {
+        showScreen('app-container');
+        setActiveTab('dashboard-tab');
+    } else {
+        showScreen('setup-screen');
+    }
+};
+
 const bindEvents = () => {
     $('#loginForm').addEventListener('submit', login);
     $('#openRegisterForm').addEventListener('submit', openRegister);
     $$('.tab-btn').forEach((button) => button.addEventListener('click', () => setActiveTab(button.dataset.tab)));
 
     $('#btnRefreshDashboard').addEventListener('click', loadDashboard);
+    $('#btnDashboardPdv').addEventListener('click', () => setActiveTab('pdv-tab'));
+    $('#btnDashboardCash').addEventListener('click', () => setActiveTab('cash-tab'));
     $('#btnScan').addEventListener('click', addProductToCart);
     $('#barcodeInput').addEventListener('keydown', (event) => {
         if (event.key === 'Enter') addProductToCart();
@@ -923,11 +1309,18 @@ const bindEvents = () => {
         button.addEventListener('click', () => {
             $$('.pay-method').forEach((item) => item.classList.remove('active'));
             button.classList.add('active');
-            state.paymentMethod = button.dataset.method;
+            fillSinglePayment(button.dataset.method);
         });
     });
+    $$('[data-payment-method]').forEach((input) => input.addEventListener('input', updatePaymentSummary));
+    $('#saleDiscount').addEventListener('input', renderCart);
     $('#btnFinalize').addEventListener('click', finalizeSale);
 
+    $('#btnNewProduct').addEventListener('click', () => openProductModal());
+    $('#btnCloseProductModal').addEventListener('click', closeProductModal);
+    $('#btnCancelProduct').addEventListener('click', closeProductModal);
+    $('#productForm').addEventListener('submit', saveProduct);
+    $('#btnAdjustStock').addEventListener('click', adjustProductStock);
     $('#btnCatalogSearch').addEventListener('click', () => {
         state.catalogSearch = $('#catalogSearch').value.trim();
         loadCatalog(1);
@@ -941,6 +1334,7 @@ const bindEvents = () => {
     $('#btnRefreshHistory').addEventListener('click', () => loadHistory(state.historyPage));
     $('#btnHistoryPrev').addEventListener('click', () => loadHistory(state.historyPage - 1));
     $('#btnHistoryNext').addEventListener('click', () => loadHistory(state.historyPage + 1));
+    $('#closingAmount').addEventListener('input', updateClosingDifference);
     $('#btnCloseCash').addEventListener('click', closeCashSession);
 
     $('#btnSupplierSearch').addEventListener('click', () => {
@@ -962,13 +1356,13 @@ const bindEvents = () => {
     $('#btnConfirmPurchase').addEventListener('click', confirmPurchaseEntry);
     $('#btnRefreshPurchases').addEventListener('click', loadPurchaseEntries);
     $('#btnLoadReports').addEventListener('click', loadReports);
+    $('#btnExportReports').addEventListener('click', exportReportsCsv);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     $('#reportFrom').value = todayInputValue();
     $('#reportTo').value = todayInputValue();
-    refreshSessionHeader();
-    renderCart();
-    renderPurchaseItems();
     bindEvents();
+    bindShortcuts();
+    bootstrapProtectedState();
 });

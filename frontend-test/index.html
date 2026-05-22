@@ -1,391 +1,780 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html class="light" lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDV Pro</title>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Nexus ERP - Operations</title>
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="styles.css">
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1f108e",
+                        "secondary": "#565e74",
+                        "background": "#f8f9ff",
+                        "surface": "#ffffff",
+                        "on-background": "#0b1c30",
+                        "on-surface": "#0b1c30",
+                        "outline": "#777584",
+                        "outline-variant": "#c8c4d5",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#93000a"
+                    },
+                    spacing: {
+                        "xs": "4px", "sm": "8px", "md": "16px", "lg": "24px", "xl": "40px", "container-margin": "32px"
+                    },
+                    fontFamily: {
+                        "body-md": ["Inter"], "code": ["Inter"], "h1": ["Inter"], "h2": ["Inter"], "h3": ["Inter"]
+                    },
+                    fontSize: {
+                        "body-sm": ["13px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "body-lg": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "h1": ["30px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "h2": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "h3": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body>
+<body class="bg-background text-on-background antialiased overflow-hidden min-h-screen custom-scrollbar">
+
+    <!-- Toast Container -->
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <section id="login-screen" class="screen active auth-screen">
-        <form id="loginForm" class="auth-panel">
-            <div class="brand-mark">PDV Pro</div>
-            <h1>Acesso operacional</h1>
-            <label class="field">
-                <span>Usuario</span>
-                <input type="text" id="username" autocomplete="username" placeholder="admin">
-            </label>
-            <label class="field">
-                <span>Senha</span>
-                <input type="password" id="password" autocomplete="current-password" placeholder="senha">
-            </label>
-            <button id="btnLogin" class="btn primary" type="submit">Entrar</button>
-        </form>
-    </section>
-
-    <section id="setup-screen" class="screen auth-screen">
-        <form id="openRegisterForm" class="auth-panel">
-            <div class="brand-mark">PDV Pro</div>
-            <h1>Abertura de caixa</h1>
-            <label class="field">
-                <span>Terminal</span>
-                <input type="text" id="terminalId" value="PDV-01">
-            </label>
-            <label class="field">
-                <span>Operador</span>
-                <input type="text" id="operatorName" placeholder="Nome do operador">
-            </label>
-            <label class="field">
-                <span>Fundo de troco</span>
-                <input type="number" id="openingAmount" value="150.00" min="0" step="0.01">
-            </label>
-            <button id="btnOpenRegister" class="btn primary" type="submit">Abrir caixa</button>
-        </form>
-    </section>
-
-    <section id="app-container" class="screen app-shell">
-        <aside class="sidebar">
-            <div class="brand-mark compact">PDV Pro</div>
-            <nav class="nav-tabs" aria-label="Navegacao principal">
-                <button class="tab-btn active" data-tab="dashboard-tab" type="button">Dashboard</button>
-                <button class="tab-btn" data-tab="pdv-tab" type="button">Frente de caixa</button>
-                <button class="tab-btn" data-tab="catalog-tab" type="button">Catalogo</button>
-                <button class="tab-btn" data-tab="history-tab" type="button">Historico</button>
-                <button class="tab-btn" data-tab="cash-tab" type="button">Fechamento</button>
-                <button class="tab-btn" data-tab="suppliers-tab" type="button">Fornecedores</button>
-                <button class="tab-btn" data-tab="purchase-tab" type="button">Entrada de estoque</button>
-                <button class="tab-btn" data-tab="reports-tab" type="button">Relatorios</button>
-            </nav>
-        </aside>
-
-        <div class="workspace">
-            <header class="topbar">
+    <!-- Login Auth Screen -->
+    <section id="login-screen" class="screen active flex h-screen items-center justify-center bg-slate-50 z-50">
+        <form id="loginForm" class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 w-full max-w-sm">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-primary text-white rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">widgets</span>
+                </div>
+                <h1 class="font-h2 text-h2 text-slate-900">ERP Pro</h1>
+                <p class="text-slate-500 text-body-sm mt-1">Acesso Operacional</p>
+            </div>
+            
+            <div class="space-y-4">
                 <div>
-                    <p class="eyebrow">Operacao</p>
-                    <h2 id="viewTitle">Dashboard</h2>
+                    <label class="block text-label-md text-slate-500 mb-1">Usuário</label>
+                    <input type="text" id="username" autocomplete="username" placeholder="admin" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-body-md focus:ring-2 focus:ring-primary outline-none">
                 </div>
-                <div class="session-strip">
-                    <span id="lblOperator">Operador</span>
-                    <span id="lblTerminal">PDV-01</span>
-                    <span id="badgeSessionState" class="badge success">Caixa aberto</span>
+                <div>
+                    <label class="block text-label-md text-slate-500 mb-1">Senha</label>
+                    <input type="password" id="password" autocomplete="current-password" placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-body-md focus:ring-2 focus:ring-primary outline-none">
                 </div>
-            </header>
-
-            <main class="tab-content active" id="dashboard-tab">
-                <section class="metric-grid">
-                    <article class="metric-panel">
-                        <span>Vendas hoje</span>
-                        <strong id="kpiSalesCount">0</strong>
-                    </article>
-                    <article class="metric-panel">
-                        <span>Faturamento hoje</span>
-                        <strong id="kpiSalesTotal">R$ 0,00</strong>
-                    </article>
-                    <article class="metric-panel">
-                        <span>Ticket medio</span>
-                        <strong id="kpiAvgTicket">R$ 0,00</strong>
-                    </article>
-                    <article class="metric-panel">
-                        <span>Estoque baixo</span>
-                        <strong id="kpiLowStock">0</strong>
-                    </article>
-                </section>
-
-                <section class="split-view">
-                    <div class="panel">
-                        <div class="panel-header">
-                            <h3>Ultimas vendas</h3>
-                            <button id="btnRefreshDashboard" class="btn ghost" type="button">Atualizar</button>
-                        </div>
-                        <div class="table-wrap compact-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>N.</th>
-                                        <th>Operador</th>
-                                        <th>Status</th>
-                                        <th>Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="recentSalesBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="panel">
-                        <div class="panel-header">
-                            <h3>Alertas de estoque</h3>
-                        </div>
-                        <div class="table-wrap compact-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Produto</th>
-                                        <th>Atual</th>
-                                        <th>Min.</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dashboardStockAlertsBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-            </main>
-
-            <main class="tab-content pdv-layout" id="pdv-tab">
-                <section class="panel sale-panel">
-                    <div class="scan-bar">
-                        <input type="text" id="barcodeInput" placeholder="Codigo de barras" autocomplete="off">
-                        <button id="btnScan" class="btn primary" type="button">Adicionar</button>
-                    </div>
-                    <div class="quick-add-buttons">
-                        <button class="chip" data-barcode="7891000100103" type="button">Arroz 5kg</button>
-                        <button class="chip" data-barcode="7894900011517" type="button">Cola 2L</button>
-                        <button class="chip" data-barcode="7891910000197" type="button">Cafe 500g</button>
-                    </div>
-                    <div class="cart-grid header-row">
-                        <span>Produto</span>
-                        <span>Qtd</span>
-                        <span>Unit.</span>
-                        <span>Total</span>
-                    </div>
-                    <ul id="cartItems" class="cart-items"></ul>
-                </section>
-
-                <aside class="panel checkout-panel">
-                    <div class="total-box">
-                        <span>Itens</span>
-                        <strong id="lblItemCount">0</strong>
-                    </div>
-                    <div class="total-box grand">
-                        <span>Total</span>
-                        <strong id="lblTotal">R$ 0,00</strong>
-                    </div>
-                    <div class="payment-section hidden" id="paymentSection">
-                        <div class="payment-methods">
-                            <button class="pay-method active" data-method="Cash" type="button">Dinheiro</button>
-                            <button class="pay-method" data-method="CreditCard" type="button">Credito</button>
-                            <button class="pay-method" data-method="DebitCard" type="button">Debito</button>
-                            <button class="pay-method" data-method="Pix" type="button">Pix</button>
-                        </div>
-                        <button id="btnFinalize" class="btn success" type="button">Confirmar venda</button>
-                        <button id="btnCancelCheckout" class="btn ghost" type="button">Voltar</button>
-                    </div>
-                    <button id="btnCheckout" class="btn primary" type="button">Ir para pagamento</button>
-                </aside>
-            </main>
-
-            <main class="tab-content" id="catalog-tab">
-                <section class="panel full-height">
-                    <div class="panel-header">
-                        <h3>Catalogo</h3>
-                        <div class="toolbar">
-                            <input type="text" id="catalogSearch" placeholder="Buscar produto">
-                            <button id="btnCatalogSearch" class="btn secondary" type="button">Pesquisar</button>
-                        </div>
-                    </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Produto</th>
-                                    <th>Codigo</th>
-                                    <th>Un.</th>
-                                    <th>Preco</th>
-                                    <th>Estoque</th>
-                                    <th>Min.</th>
-                                </tr>
-                            </thead>
-                            <tbody id="catalogTableBody"></tbody>
-                        </table>
-                    </div>
-                    <div class="pagination">
-                        <button id="btnCatalogPrev" class="btn ghost" type="button">Anterior</button>
-                        <span id="catalogPageInfo">Pagina 1 de 1</span>
-                        <button id="btnCatalogNext" class="btn ghost" type="button">Proxima</button>
-                    </div>
-                </section>
-            </main>
-
-            <main class="tab-content" id="history-tab">
-                <section class="panel full-height">
-                    <div class="panel-header">
-                        <h3>Historico de vendas</h3>
-                        <button id="btnRefreshHistory" class="btn secondary" type="button">Atualizar</button>
-                    </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>N.</th>
-                                    <th>Data</th>
-                                    <th>Operador</th>
-                                    <th>Status</th>
-                                    <th>Total</th>
-                                    <th>Acao</th>
-                                </tr>
-                            </thead>
-                            <tbody id="historyTableBody"></tbody>
-                        </table>
-                    </div>
-                    <div class="pagination">
-                        <button id="btnHistoryPrev" class="btn ghost" type="button">Anterior</button>
-                        <span id="historyPageInfo">Pagina 1 de 1</span>
-                        <button id="btnHistoryNext" class="btn ghost" type="button">Proxima</button>
-                    </div>
-                </section>
-            </main>
-
-            <main class="tab-content" id="cash-tab">
-                <section class="panel narrow-panel">
-                    <h3>Fechamento de caixa</h3>
-                    <div class="summary-stack">
-                        <div><span>Troco inicial</span><strong id="summaryOpening">R$ 0,00</strong></div>
-                        <div><span>Esperado em gaveta</span><strong id="summaryExpected">R$ 0,00</strong></div>
-                    </div>
-                    <label class="field">
-                        <span>Valor apurado</span>
-                        <input type="number" id="closingAmount" min="0" step="0.01" placeholder="0,00">
-                    </label>
-                    <label class="field">
-                        <span>Observacoes</span>
-                        <input type="text" id="closingNotes" placeholder="Opcional">
-                    </label>
-                    <button id="btnCloseCash" class="btn danger" type="button">Encerrar turno</button>
-                </section>
-            </main>
-
-            <main class="tab-content management-layout" id="suppliers-tab">
-                <section class="panel">
-                    <div class="panel-header">
-                        <h3>Fornecedores</h3>
-                        <div class="toolbar">
-                            <input type="text" id="supplierSearch" placeholder="Buscar fornecedor">
-                            <button id="btnSupplierSearch" class="btn secondary" type="button">Pesquisar</button>
-                        </div>
-                    </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>CNPJ</th>
-                                    <th>Contato</th>
-                                    <th>Status</th>
-                                    <th>Acao</th>
-                                </tr>
-                            </thead>
-                            <tbody id="suppliersTableBody"></tbody>
-                        </table>
-                    </div>
-                    <div class="pagination">
-                        <button id="btnSuppliersPrev" class="btn ghost" type="button">Anterior</button>
-                        <span id="suppliersPageInfo">Pagina 1 de 1</span>
-                        <button id="btnSuppliersNext" class="btn ghost" type="button">Proxima</button>
-                    </div>
-                </section>
-
-                <form id="supplierForm" class="panel side-form">
-                    <h3 id="supplierFormTitle">Novo fornecedor</h3>
-                    <input type="hidden" id="supplierId">
-                    <label class="field"><span>Nome</span><input id="supplierName" type="text" required></label>
-                    <label class="field"><span>CNPJ</span><input id="supplierCnpj" type="text"></label>
-                    <label class="field"><span>Contato</span><input id="supplierContact" type="text"></label>
-                    <label class="field"><span>Telefone</span><input id="supplierPhone" type="text"></label>
-                    <label class="field"><span>Email</span><input id="supplierEmail" type="email"></label>
-                    <label class="check-field"><input id="supplierActive" type="checkbox" checked> Ativo</label>
-                    <button id="btnSaveSupplier" class="btn primary" type="submit">Salvar fornecedor</button>
-                    <button id="btnClearSupplier" class="btn ghost" type="button">Limpar</button>
-                </form>
-            </main>
-
-            <main class="tab-content management-layout" id="purchase-tab">
-                <section class="panel side-form">
-                    <h3>Nova entrada</h3>
-                    <label class="field">
-                        <span>Fornecedor</span>
-                        <select id="purchaseSupplier"></select>
-                    </label>
-                    <label class="field">
-                        <span>Numero da nota</span>
-                        <input type="text" id="purchaseInvoice" placeholder="NF-0001">
-                    </label>
-                    <div class="line-builder">
-                        <input type="text" id="purchaseBarcode" placeholder="Codigo do produto">
-                        <input type="number" id="purchaseQuantity" min="0.001" step="0.001" value="1">
-                        <input type="number" id="purchaseUnitCost" min="0" step="0.01" placeholder="Custo">
-                        <button id="btnAddPurchaseItem" class="btn secondary" type="button">Adicionar</button>
-                    </div>
-                    <div class="entry-lines" id="purchaseItemsList"></div>
-                    <div class="total-line">
-                        <span>Total da entrada</span>
-                        <strong id="purchaseTotal">R$ 0,00</strong>
-                    </div>
-                    <button id="btnConfirmPurchase" class="btn primary" type="button">Confirmar entrada</button>
-                </section>
-
-                <section class="panel">
-                    <div class="panel-header">
-                        <h3>Entradas recentes</h3>
-                        <button id="btnRefreshPurchases" class="btn secondary" type="button">Atualizar</button>
-                    </div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Nota</th>
-                                    <th>Fornecedor</th>
-                                    <th>Recebida em</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="purchaseEntriesBody"></tbody>
-                        </table>
-                    </div>
-                </section>
-            </main>
-
-            <main class="tab-content report-layout" id="reports-tab">
-                <section class="panel">
-                    <div class="panel-header">
-                        <h3>Resumo de vendas</h3>
-                        <div class="toolbar">
-                            <input type="date" id="reportFrom">
-                            <input type="date" id="reportTo">
-                            <button id="btnLoadReports" class="btn secondary" type="button">Carregar</button>
-                        </div>
-                    </div>
-                    <section class="metric-grid compact-metrics">
-                        <article class="metric-panel"><span>Vendas</span><strong id="reportSalesCount">0</strong></article>
-                        <article class="metric-panel"><span>Receita liquida</span><strong id="reportNetRevenue">R$ 0,00</strong></article>
-                        <article class="metric-panel"><span>Descontos</span><strong id="reportDiscounts">R$ 0,00</strong></article>
-                    </section>
-                    <div class="bars" id="salesByHour"></div>
-                </section>
-
-                <section class="panel">
-                    <div class="panel-header">
-                        <h3>Movimentacoes de estoque</h3>
-                    </div>
-                    <div class="table-wrap compact-table">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Produto</th>
-                                    <th>Tipo</th>
-                                    <th>Qtd</th>
-                                    <th>Data</th>
-                                </tr>
-                            </thead>
-                            <tbody id="inventoryMovementsBody"></tbody>
-                        </table>
-                    </div>
-                </section>
-            </main>
-        </div>
+                <button type="submit" id="btnLogin" class="w-full bg-primary text-white font-bold py-3 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all">
+                    Acessar Sistema
+                </button>
+            </div>
+        </form>
     </section>
+
+    <!-- Setup Screen -->
+    <section id="setup-screen" class="screen flex h-screen items-center justify-center bg-slate-50 z-50">
+        <form id="openRegisterForm" class="bg-white p-8 rounded-xl shadow-lg border border-slate-200 w-full max-w-sm">
+            <div class="text-center mb-6">
+                <span class="material-symbols-outlined text-4xl text-primary mb-2">point_of_sale</span>
+                <h1 class="font-h2 text-h2 text-slate-900">Abertura de Caixa</h1>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-label-md text-slate-500 mb-1">Terminal</label>
+                    <input type="text" id="terminalId" value="PDV-01" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-code text-slate-900 focus:ring-2 focus:ring-primary outline-none">
+                </div>
+                <div>
+                    <label class="block text-label-md text-slate-500 mb-1">Operador</label>
+                    <input type="text" id="operatorName" placeholder="Seu nome" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-body-md focus:ring-2 focus:ring-primary outline-none">
+                </div>
+                <div>
+                    <label class="block text-label-md text-slate-500 mb-1">Fundo de Troco Inicial (R$)</label>
+                    <input type="number" id="openingAmount" value="150.00" min="0" step="0.01" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-body-md font-bold focus:ring-2 focus:ring-primary outline-none">
+                </div>
+                <button type="submit" id="btnOpenRegister" class="w-full bg-primary text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all mt-4">
+                    <span class="material-symbols-outlined text-sm">lock_open</span> Iniciar Turno
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Main Workspace Shell -->
+    <section id="app-container" class="screen w-full relative">
+        <!-- TopNavBar -->
+        <header class="fixed top-0 w-full z-40 border-b border-slate-200 bg-white flex justify-between items-center h-16 px-6">
+            <div class="flex items-center gap-8">
+                <span class="text-xl font-bold text-slate-900 font-h1">ERP Pro</span>
+                <div class="hidden md:flex items-center bg-slate-50 border border-slate-200 rounded px-3 py-1.5 w-80">
+                    <span class="material-symbols-outlined text-slate-400 text-sm mr-2" data-icon="search">search</span>
+                    <input class="bg-transparent border-none focus:ring-0 text-body-sm w-full outline-none" placeholder="Buscar no ecossistema..." type="text"/>
+                </div>
+
+                <div id="productModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="productFormTitle">
+                    <form id="productForm" class="modal-panel">
+                        <div class="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+                            <div>
+                                <h3 id="productFormTitle" class="font-bold text-xl text-slate-900">Novo produto</h3>
+                                <p class="text-sm text-slate-500 mt-1">Cadastro e manutenção do catálogo usado pelo PDV.</p>
+                            </div>
+                            <button id="btnCloseProductModal" type="button" class="icon-button" aria-label="Fechar">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <input type="hidden" id="productId">
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                            <label class="field col-span-2">Nome do produto<input id="productName" type="text" required></label>
+                            <label class="field">Código de barras<input id="productBarcode" type="text" required></label>
+                            <label class="field">SKU<input id="productSku" type="text"></label>
+                            <label class="field">Unidade<input id="productUnit" type="text" value="UN" required></label>
+                            <label class="field">Preço<input id="productPrice" type="number" min="0" step="0.01" required></label>
+                            <label class="field">Estoque inicial<input id="productStock" type="number" min="0" step="0.001" required></label>
+                            <label class="field">Estoque mínimo<input id="productMinStock" type="number" min="0" step="0.001" required></label>
+                            <label class="flex items-center gap-2 text-sm font-bold text-slate-700 col-span-2">
+                                <input id="productActive" type="checkbox" checked class="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary"> Produto ativo
+                            </label>
+                        </div>
+                        <div class="mt-4 p-3 rounded-lg border border-amber-200 bg-amber-50" id="stockAdjustmentBox">
+                            <div class="text-xs uppercase font-bold text-amber-700 mb-2">Ajuste manual de estoque</div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="field">Delta (+/-)<input id="stockDelta" type="number" step="0.001" placeholder="0"></label>
+                                <label class="field">Motivo<input id="stockReason" type="text" placeholder="Inventário, perda, correção"></label>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center gap-3 mt-5 pt-4 border-t border-slate-100">
+                            <button id="btnAdjustStock" type="button" class="border border-amber-300 text-amber-700 bg-amber-50 px-4 py-2 rounded text-sm font-bold hover:bg-amber-100">Aplicar ajuste</button>
+                            <div class="flex gap-2">
+                                <button id="btnCancelProduct" type="button" class="border border-slate-300 px-4 py-2 rounded text-sm font-bold hover:bg-slate-50">Cancelar</button>
+                                <button id="btnSaveProduct" type="submit" class="bg-primary text-white border border-primary px-4 py-2 rounded text-sm font-bold hover:brightness-110">Salvar produto</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 mr-4 text-right">
+                    <div>
+                        <p class="text-label-md text-slate-400">OPERADOR: <span id="lblOperator" class="font-bold text-slate-900">N/A</span></p>
+                        <p class="text-label-md text-slate-400">PDV: <span id="lblTerminal" class="font-bold text-slate-900">N/A</span></p>
+                    </div>
+                    <span id="badgeSessionState" class="px-2 py-1 bg-amber-100 text-amber-700 font-bold text-[10px] rounded">Sem Caixa</span>
+                </div>
+                <!-- Controls -->
+                <button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors active:opacity-80"><span class="material-symbols-outlined">notifications</span></button>
+                <button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors active:opacity-80"><span class="material-symbols-outlined">help</span></button>
+                <div class="h-8 w-8 rounded-full bg-slate-200 overflow-hidden ml-2 border border-slate-300 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">person</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- SideNavBar -->
+        <nav class="fixed left-0 top-0 h-full w-60 border-r border-slate-200 bg-white flex flex-col pt-20 pb-6 z-30">
+            <div class="px-6 mb-8">
+                <h2 class="text-lg font-black tracking-tighter text-slate-900">Global Operations</h2>
+                <p id="viewTitle" class="text-xs text-slate-500 uppercase font-bold tracking-widest mt-1">Geral</p>
+            </div>
+            
+            <div class="flex-1 space-y-1 nav-tabs">
+                <a href="#" class="tab-btn text-slate-600 flex items-center gap-3 px-6 py-3 hover:bg-slate-50 hover:text-indigo-600 transition-all duration-200 ease-in-out" data-tab="dashboard-tab">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span class="font-sans text-[13px] tracking-tight">Dashboard</span>
+                </a>
+                <a href="#" class="tab-btn text-slate-600 flex items-center gap-3 px-6 py-3 hover:bg-slate-50 hover:text-indigo-600 transition-all duration-200 ease-in-out" data-tab="catalog-tab">
+                    <span class="material-symbols-outlined">inventory_2</span>
+                    <span class="font-sans text-[13px] tracking-tight">Catálogo (Estoque)</span>
+                </a>
+                <a href="#" class="tab-btn text-slate-600 flex items-center gap-3 px-6 py-3 hover:bg-slate-50 hover:text-indigo-600 transition-all duration-200 ease-in-out" data-tab="pdv-tab">
+                    <span class="material-symbols-outlined">point_of_sale</span>
+                    <span class="font-sans text-[13px] tracking-tight">Vendas (PDV)</span>
+                </a>
+                <a href="#" class="tab-btn text-slate-600 flex items-center gap-3 px-6 py-3 hover:bg-slate-50 hover:text-indigo-600 transition-all duration-200 ease-in-out" data-tab="history-tab">
+                    <span class="material-symbols-outlined">history</span>
+                    <span class="font-sans text-[13px] tracking-tight">Histórico de Vendas</span>
+                </a>
+                <a href="#" class="tab-btn text-slate-600 flex items-center gap-3 px-6 py-3 hover:bg-slate-50 hover:text-indigo-600 transition-all duration-200 ease-in-out" data-tab="reports-tab">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                    <span class="font-sans text-[13px] tracking-tight">Relatórios</span>
+                </a>
+                <a href="#" class="tab-btn text-slate-600 flex items-center gap-3 px-6 py-3 hover:bg-slate-50 hover:text-indigo-600 transition-all duration-200 ease-in-out" data-tab="suppliers-tab">
+                    <span class="material-symbols-outlined">local_shipping</span>
+                    <span class="font-sans text-[13px] tracking-tight">Fornecedores</span>
+                </a>
+                <a href="#" class="tab-btn text-slate-600 flex items-center gap-3 px-6 py-3 hover:bg-slate-50 hover:text-indigo-600 transition-all duration-200 ease-in-out" data-tab="purchase-tab">
+                    <span class="material-symbols-outlined">receipt_long</span>
+                    <span class="font-sans text-[13px] tracking-tight">Entrada de NFs</span>
+                </a>
+                 <a href="#" class="tab-btn text-slate-600 flex items-center gap-3 px-6 py-3 hover:bg-slate-50 hover:text-indigo-600 transition-all duration-200 ease-in-out" data-tab="cash-tab">
+                    <span class="material-symbols-outlined">lock</span>
+                    <span class="font-sans text-[13px] tracking-tight">Fechamento de Caixa</span>
+                </a>
+            </div>
+            
+            <div class="mt-auto border-t border-slate-100 pt-4">
+                <a href="#" onclick="location.reload()" class="text-slate-600 flex items-center gap-3 px-6 py-3 hover:bg-slate-50 transition-all duration-200">
+                    <span class="material-symbols-outlined">logout</span>
+                    <span class="font-sans text-[13px] tracking-tight">Sair / Trocar Usuário</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="ml-60 pt-16 h-screen flex flex-col bg-background">
+            
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content flex-1 overflow-y-auto p-lg custom-scrollbar">
+                <div class="flex justify-between items-end mb-lg">
+                    <div>
+                        <h1 class="font-h1 text-h1 text-on-surface">Nexus Dashboard</h1>
+                        <p class="font-body-md text-body-md text-slate-500">Real-time operational overview for Warehouse Alpha</p>
+                    </div>
+                    <div class="flex gap-md">
+                        <button id="btnDashboardPdv" class="bg-primary text-white border border-primary px-4 py-2 rounded text-body-sm font-semibold hover:brightness-110 transition-colors flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">point_of_sale</span> Ir ao PDV
+                        </button>
+                        <button id="btnDashboardCash" class="bg-white border border-slate-300 px-4 py-2 rounded text-body-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">lock_open</span> Caixa
+                        </button>
+                        <button id="btnRefreshDashboard" class="bg-white border border-slate-300 px-4 py-2 rounded text-body-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">refresh</span> Atualizar Dados
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bento KPI Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-md mb-lg">
+                    <div class="bg-white border border-slate-200 p-md rounded-xl shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-slate-500 font-label-md text-label-md uppercase">Vendas Hoje</span>
+                        </div>
+                        <div class="text-h2 font-h2" id="kpiSalesCount">0</div>
+                        <div class="mt-4 h-1 w-full bg-slate-100 rounded overflow-hidden">
+                            <div class="h-full bg-indigo-600 w-full"></div>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 p-md rounded-xl shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-slate-500 font-label-md text-label-md uppercase">Faturamento Hoje</span>
+                            <span class="text-green-600 bg-green-50 px-2 py-0.5 rounded text-[10px] font-bold">ESTÁVEL</span>
+                        </div>
+                        <div class="text-h2 font-h2" id="kpiSalesTotal">R$ 0,00</div>
+                    </div>
+                    <div class="bg-white border border-slate-200 p-md rounded-xl shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-slate-500 font-label-md text-label-md uppercase">Ticket Médio</span>
+                        </div>
+                        <div class="text-h2 font-h2" id="kpiAvgTicket">R$ 0,00</div>
+                    </div>
+                    <div class="bg-white border border-slate-200 p-md rounded-xl shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-slate-500 font-label-md text-label-md uppercase">Caixas Abertos</span>
+                        </div>
+                        <div class="text-h2 font-h2 text-indigo-700" id="kpiOpenCashSessions">0</div>
+                    </div>
+                    <div class="bg-white border border-slate-200 p-md rounded-xl shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-slate-500 font-label-md text-label-md uppercase">Estoque Baixo</span>
+                            <span class="text-red-600 bg-red-50 px-2 py-0.5 rounded text-[10px] font-bold">ALERTAS</span>
+                        </div>
+                        <div class="text-h2 font-h2 text-red-600" id="kpiLowStock">0</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-lg">
+                    <div class="xl:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col min-h-[300px]">
+                        <div class="p-md border-b border-slate-100 flex justify-between items-center">
+                            <h3 class="font-h3 text-h3">Últimas Transações / Vendas</h3>
+                        </div>
+                        <div class="flex-1 overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50 border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-md py-3 font-label-md text-slate-500">ID VENDA</th>
+                                        <th class="px-md py-3 font-label-md text-slate-500">OPERADOR</th>
+                                        <th class="px-md py-3 font-label-md text-slate-500">STATUS</th>
+                                        <th class="px-md py-3 font-label-md text-slate-500 text-right">TOTAL</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100" id="recentSalesBody">
+                                    <!-- Dynamic rows matching UI -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-md">
+                        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                            <div class="p-md border-b border-slate-100 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-indigo-600">bar_chart</span>
+                                <h3 class="font-h3 text-body-lg font-bold">Vendas por Hora</h3>
+                            </div>
+                            <div id="dashboardSalesByHour" class="p-md space-y-3 min-h-[160px]"></div>
+                        </div>
+                        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex-1">
+                            <div class="p-md border-b border-slate-100 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-amber-500">warning</span>
+                                <h3 class="font-h3 text-body-lg font-bold">Alertas de Estoque</h3>
+                            </div>
+                            <div class="p-md space-y-3">
+                                <table class="w-full text-left" style="font-size: 13px;">
+                                    <thead class="text-slate-400">
+                                        <tr>
+                                            <th class="pb-2">Produto</th><th class="pb-2 text-center">Atual</th><th class="pb-2 text-center">Mín.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboardStockAlertsBody" class="divide-y divide-slate-50 font-medium"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Catálogo Tab -->
+            <div id="catalog-tab" class="tab-content flex-1 overflow-y-auto p-lg custom-scrollbar">
+                <div class="flex flex-col md:flex-row md:items-end justify-between mb-lg gap-md">
+                    <div>
+                        <h1 class="font-h1 text-h1 text-on-surface">Product Catalog</h1>
+                        <p class="text-body-sm text-slate-500 mt-1">Gerencie preços, medidas e distribuições de estoque.</p>
+                    </div>
+                    <div class="flex items-center gap-sm">
+                        <button id="btnNewProduct" type="button" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:brightness-110 transition-colors flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">add_box</span> Novo produto
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                    <div class="p-md border-b border-slate-100 flex flex-wrap items-center justify-between gap-md bg-slate-50/50">
+                        <div class="flex items-center border border-slate-300 rounded bg-white overflow-hidden w-96">
+                            <button id="btnCatalogSearch" class="px-3 py-1.5 border-r border-slate-300 text-slate-600 hover:bg-slate-50 flex items-center">
+                                <span class="material-symbols-outlined text-sm">search</span>
+                            </button>
+                            <input id="catalogSearch" type="text" class="w-full bg-transparent border-none focus:ring-0 text-body-sm outline-none px-3" placeholder="Buscar no catálogo...">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 font-label-md text-slate-500 uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-md py-3 font-semibold border-b border-slate-200">Produto Principal</th>
+                                    <th class="px-md py-3 font-semibold border-b border-slate-200">SKU / Código</th>
+                                    <th class="px-md py-3 font-semibold border-b border-slate-200 text-center">Un.</th>
+                                    <th class="px-md py-3 font-semibold border-b border-slate-200 text-right">Preço</th>
+                                    <th class="px-md py-3 font-semibold border-b border-slate-200 text-center">Estoque Atual</th>
+                                    <th class="px-md py-3 font-semibold border-b border-slate-200 text-center">Mínimo</th>
+                                    <th class="px-md py-3 font-semibold border-b border-slate-200 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100" id="catalogTableBody">
+                                <!-- Replaced dynamically via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-md bg-white border-t border-slate-200 flex items-center justify-between">
+                        <div><span id="catalogPageInfo" class="text-body-sm text-slate-500 font-bold">Página 1 de 1</span></div>
+                        <div class="flex gap-2">
+                            <button id="btnCatalogPrev" class="px-4 py-2 border border-slate-200 rounded hover:bg-slate-50 text-slate-600 text-body-sm font-medium transition-colors disabled:opacity-50">Anterior</button>
+                            <button id="btnCatalogNext" class="px-4 py-2 border border-slate-200 rounded hover:bg-slate-50 text-slate-600 text-body-sm font-medium transition-colors disabled:opacity-50">Próxima</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pos / Frente de Caixa Tab (The split view) -->
+            <div id="pdv-tab" class="tab-content flex-1 h-full overflow-hidden">
+                <div class="flex h-full w-full">
+                    <!-- Left Side: POS Interface -->
+                    <div class="flex-1 flex flex-col p-lg gap-lg overflow-y-auto bg-slate-50/30">
+                        <div class="grid grid-cols-12 gap-md">
+                            <div class="col-span-12 lg:col-span-8 bg-white border border-slate-200 p-3 rounded-xl shadow-sm flex items-center gap-md">
+                                <div class="bg-indigo-50 p-2 rounded-lg">
+                                    <span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">barcode_scanner</span>
+                                </div>
+                                <input autofocus type="text" id="barcodeInput" class="flex-1 border-none focus:ring-0 text-h3 font-body-md placeholder:text-slate-400 outline-none" placeholder="Scan Barcode (SKU) ou Código interno...">
+                                <button id="btnScan" class="bg-primary text-white rounded px-4 py-2 font-bold text-sm hidden">Add</button>
+                                <kbd class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-xs border border-slate-200 font-code">ENTER</kbd>
+                            </div>
+                            <div class="col-span-12 lg:col-span-4 bg-white border border-slate-200 p-md rounded-xl shadow-sm flex items-center justify-center gap-2 flex-wrap">
+                                <!-- Botões de add rápido - hardcoded da versão anterior -->
+                                <button class="chip bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-bold border border-slate-300 transition-colors" data-barcode="7891000100103" type="button">+ Arroz</button>
+                                <button class="chip bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-bold border border-slate-300 transition-colors" data-barcode="7894900011517" type="button">+ Cola 2L</button>
+                                <button class="chip bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1 rounded-full text-xs font-bold border border-slate-300 transition-colors" data-barcode="7891910000197" type="button">+ Café</button>
+                            </div>
+                        </div>
+
+                        <!-- Product Grid Visual Container placeholder -> the cart items replaces this in the UI actually, wait.
+                             In the mocked UI, Left Side was products, Right side was cart.
+                             Our old logic uses #cartItems on the left. Let's make Right side = items basket & payment, Left side = visual items or simply just let #cartItems be the table that takes most of the left side. -->
+                        <div class="bg-white border border-slate-200 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden">
+                            <div class="bg-slate-50 px-md py-3 border-b border-slate-200 grid grid-cols-12 gap-2 text-label-md text-slate-500 uppercase">
+                                <div class="col-span-4">Produto Principal</div>
+                                <div class="col-span-2 text-center">Qtd</div>
+                                <div class="col-span-2 text-right">Unitário</div>
+                                <div class="col-span-2 text-center">Desc.</div>
+                                <div class="col-span-2 text-right pr-2">Total L.</div>
+                            </div>
+                            <ul id="cartItems" class="flex-1 overflow-y-auto divide-y divide-slate-100 p-0 m-0 custom-scrollbar">
+                                <!-- Replaced by renderCart JS function, layout handled in CSS/JS overrides below -->
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Side: Checkout pane -->
+                    <div class="w-[400px] border-l border-slate-200 bg-white flex flex-col shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-10 relative">
+                        <div class="p-md border-b border-slate-100 flex items-center justify-between bg-primary text-white">
+                            <div class="flex items-center gap-sm">
+                                <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-white">shopping_cart</span>
+                                </div>
+                                <div>
+                                    <p class="text-body-sm font-bold">Carrinho Atual</p>
+                                    <p class="text-label-md text-slate-300">Resumo de Itens</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-2xl font-black" id="lblItemCount">0</p>
+                                <p class="text-[10px] text-slate-300 uppercase">Itens</p>
+                            </div>
+                        </div>
+
+                        <!-- Spacer so footer stays at bottom -->
+                        <div class="flex-1 bg-slate-50 relative overflow-hidden">
+                            <div class="absolute inset-0 opacity-10 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[120px]">point_of_sale</span>
+                            </div>
+                        </div>
+
+                        <div class="p-lg bg-white border-t border-slate-200 space-y-md">
+                            <div class="space-y-sm">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <label class="text-xs font-bold uppercase text-slate-500">Desconto da venda
+                                        <input id="saleDiscount" type="number" min="0" step="0.01" value="0" class="mt-1 w-full border border-slate-300 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-primary outline-none">
+                                    </label>
+                                    <label class="text-xs font-bold uppercase text-slate-500">Documento cliente
+                                        <input id="customerDocument" type="text" placeholder="CPF/CNPJ" class="mt-1 w-full border border-slate-300 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-primary outline-none">
+                                    </label>
+                                </div>
+                                <div class="flex justify-between text-h1 font-black pt-sm border-t-2 border-slate-100">
+                                    <span class="text-slate-900">Total a Pagar</span>
+                                    <span class="text-primary" id="lblTotal">R$ 0,00</span>
+                                </div>
+                            </div>
+                            
+                            <!-- State machine block for checkout -->
+                            <div id="paymentSection" class="hidden">
+                                <p class="text-label-md text-slate-500 mb-2 uppercase tracking-wide">Forma de Pagamento</p>
+                                <div class="grid grid-cols-2 gap-sm mb-4">
+                                    <button class="pay-method active bg-slate-50 border border-slate-300 py-3 rounded-xl font-bold text-body-sm hover:border-primary transition-colors focus:ring-2 focus:border-primary focus:bg-indigo-50" data-method="Cash" type="button">
+                                        <span class="material-symbols-outlined block mb-1">payments</span> Dinheiro
+                                    </button>
+                                    <button class="pay-method bg-slate-50 border border-slate-300 py-3 rounded-xl font-bold text-body-sm hover:border-primary transition-colors focus:ring-2 focus:border-primary focus:bg-indigo-50" data-method="CreditCard" type="button">
+                                        <span class="material-symbols-outlined block mb-1">credit_card</span> Crédito
+                                    </button>
+                                    <button class="pay-method bg-slate-50 border border-slate-300 py-3 rounded-xl font-bold text-body-sm hover:border-primary transition-colors focus:ring-2 focus:border-primary focus:bg-indigo-50" data-method="DebitCard" type="button">
+                                        <span class="material-symbols-outlined block mb-1">style</span> Débito
+                                    </button>
+                                    <button class="pay-method bg-slate-50 border border-slate-300 py-3 rounded-xl font-bold text-body-sm hover:border-primary transition-colors focus:ring-2 focus:border-primary focus:bg-indigo-50" data-method="Pix" type="button">
+                                        <span class="material-symbols-outlined block mb-1">qr_code_scanner</span> Pix
+                                    </button>
+                                </div>
+                                <div class="space-y-2 mb-3">
+                                    <label class="payment-input"><span><span class="material-symbols-outlined">payments</span> Dinheiro</span><input id="payCash" data-payment-method="Cash" type="number" min="0" step="0.01" value="0"></label>
+                                    <label class="payment-input"><span><span class="material-symbols-outlined">credit_card</span> Credito</span><input id="payCredit" data-payment-method="CreditCard" type="number" min="0" step="0.01" value="0"></label>
+                                    <label class="payment-input"><span><span class="material-symbols-outlined">style</span> Debito</span><input id="payDebit" data-payment-method="DebitCard" type="number" min="0" step="0.01" value="0"></label>
+                                    <label class="payment-input"><span><span class="material-symbols-outlined">qr_code_scanner</span> Pix</span><input id="payPix" data-payment-method="Pix" type="number" min="0" step="0.01" value="0"></label>
+                                </div>
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3 text-sm space-y-2 mb-4">
+                                    <div class="flex justify-between"><span class="text-slate-500">Pago</span><strong id="lblPaid">R$ 0,00</strong></div>
+                                    <div class="flex justify-between"><span class="text-slate-500">Falta</span><strong id="lblRemaining" class="text-red-600">R$ 0,00</strong></div>
+                                    <div class="flex justify-between"><span class="text-slate-500">Troco</span><strong id="lblChange" class="text-green-700">R$ 0,00</strong></div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button id="btnCancelCheckout" class="w-1/3 bg-white border border-slate-300 text-slate-600 py-4 rounded-xl font-bold text-body-md hover:bg-slate-50 transition-all">Cancelar</button>
+                                    <button id="btnFinalize" class="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-body-lg shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                                        Processar
+                                        <span class="material-symbols-outlined">receipt_long</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <button id="btnCheckout" class="w-full bg-primary text-white py-4 rounded-xl font-bold text-body-lg shadow-lg hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-sm">
+                                IR PARA PAGAMENTO <span class="material-symbols-outlined">arrow_forward</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other Missing Tabs ported into Tailwind Layouts -->
+            
+            <!-- History Tab -->
+            <div id="history-tab" class="tab-content flex-1 overflow-y-auto p-lg custom-scrollbar">
+                <div class="border border-slate-200 bg-white rounded-xl shadow-sm p-lg">
+                    <div class="flex justify-between items-center pb-md border-b border-slate-100 mb-md">
+                        <h3 class="text-h3 font-h3 font-bold text-slate-800">Histórico de Vendas (Turno Atual)</h3>
+                        <button id="btnRefreshHistory" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold text-sm">Atualizar</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-slate-500 font-label-md">
+                                <tr>
+                                    <th class="p-3 border-b border-slate-200">ID</th>
+                                    <th class="p-3 border-b border-slate-200">Data/Hora</th>
+                                    <th class="p-3 border-b border-slate-200">Operador</th>
+                                    <th class="p-3 border-b border-slate-200">Status</th>
+                                    <th class="p-3 border-b border-slate-200 text-right">Total Pago</th>
+                                    <th class="p-3 border-b border-slate-200 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                        </table>
+                    </div>
+                    <div class="flex items-center justify-between pt-md">
+                        <span id="historyPageInfo" class="text-slate-500 font-bold text-sm">Página 1</span>
+                        <div class="flex gap-2">
+                            <button id="btnHistoryPrev" class="px-3 py-1 border border-slate-200 rounded text-slate-600 disabled:opacity-50">Ant</button>
+                            <button id="btnHistoryNext" class="px-3 py-1 border border-slate-200 rounded text-slate-600 disabled:opacity-50">Próx</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cash Closure Tab -->
+            <div id="cash-tab" class="tab-content flex-1 overflow-y-auto p-lg flex justify-center items-center">
+                <div class="bg-white border border-slate-200 rounded-xl shadow-lg p-xl w-full max-w-lg">
+                    <div class="text-center mb-6">
+                        <span class="material-symbols-outlined text-4xl text-primary mb-2">lock_clock</span>
+                        <h2 class="text-h2 font-black text-slate-800">Encerrar Turno (PDV)</h2>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600 font-medium">Troco Inicial Declarado</span>
+                            <strong id="summaryOpening" class="text-lg">R$ 0,00</strong>
+                        </div>
+                        <div class="flex justify-between items-center border-t border-slate-200 pt-3">
+                            <span class="text-slate-600 font-medium">Esperado em Gaveta (Vendas)</span>
+                            <strong id="summaryExpected" class="text-xl text-primary">R$ 0,00</strong>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 mb-4 flex justify-between items-center">
+                        <span class="text-slate-600 font-medium">Diferença prevista</span>
+                        <strong id="summaryDifference" class="text-lg text-slate-700">R$ 0,00</strong>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-1">Valor Contabilizado na Gaveta</label>
+                            <input type="number" id="closingAmount" min="0" step="0.01" placeholder="0.00" class="w-full border border-slate-300 rounded-lg p-3 font-bold text-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-1">Observações (Opcional)</label>
+                            <input type="text" id="closingNotes" placeholder="Diferença por sangria..." class="w-full border border-slate-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+                        </div>
+                        <button id="btnCloseCash" class="w-full mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined">exit_to_app</span> Realizar Fechamento do Caixa
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Management: Suppliers -->
+            <div id="suppliers-tab" class="tab-content flex-1 overflow-hidden p-lg">
+                <div class="flex h-full gap-4">
+                    <div class="flex-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                        <div class="p-md border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h3 class="font-bold text-lg">Fornecedores Registrados</h3>
+                            <div class="flex bg-white border border-slate-300 rounded overflow-hidden">
+                                <input type="text" id="supplierSearch" placeholder="Buscar por Nome..." class="border-none text-sm p-2 outline-none focus:ring-0">
+                                <button id="btnSupplierSearch" class="px-3 bg-slate-100 border-l border-slate-300 text-slate-600 hover:bg-slate-200">🔍</button>
+                            </div>
+                        </div>
+                        <div class="flex-1 overflow-y-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-100 sticky top-0">
+                                    <tr>
+                                        <th class="p-3 font-semibold text-slate-600 w-1/4">Nome</th>
+                                        <th class="p-3 font-semibold text-slate-600 w-1/4">CNPJ</th>
+                                        <th class="p-3 font-semibold text-slate-600 w-1/4">Contato</th>
+                                        <th class="p-3 font-semibold text-slate-600 text-center">Status</th>
+                                        <th class="p-3 font-semibold text-slate-600 text-right">Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="suppliersTableBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                        <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-sm">
+                            <span id="suppliersPageInfo" class="font-bold text-slate-500">Página 1</span>
+                            <div class="flex gap-2">
+                                <button id="btnSuppliersPrev" class="px-3 py-1 bg-white border border-slate-300 rounded text-slate-600">Voltar</button>
+                                <button id="btnSuppliersNext" class="px-3 py-1 bg-white border border-slate-300 rounded text-slate-600">Avançar</button>
+                            </div>
+                        </div>
+                    </div>
+                    <form id="supplierForm" class="w-[350px] bg-white border border-slate-200 rounded-xl shadow-sm p-lg overflow-y-auto flex flex-col gap-4">
+                        <h3 id="supplierFormTitle" class="font-bold text-xl border-b pb-2">Novo Fornecedor</h3>
+                        <input type="hidden" id="supplierId">
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Razão Social / Nome</label><input id="supplierName" type="text" required class="w-full border border-slate-300 p-2 rounded focus:ring-1 focus:ring-primary outline-none"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">CNPJ</label><input id="supplierCnpj" type="text" class="w-full border border-slate-300 p-2 rounded focus:ring-1 focus:ring-primary outline-none"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Pessoa de Contato</label><input id="supplierContact" type="text" class="w-full border border-slate-300 p-2 rounded focus:ring-1 focus:ring-primary outline-none"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Telefone</label><input id="supplierPhone" type="text" class="w-full border border-slate-300 p-2 rounded focus:ring-1 focus:ring-primary outline-none"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">E-mail</label><input id="supplierEmail" type="email" class="w-full border border-slate-300 p-2 rounded focus:ring-1 focus:ring-primary outline-none"></div>
+                        <label class="flex items-center gap-2 text-sm font-bold text-slate-700 cursor-pointer"><input id="supplierActive" type="checkbox" checked class="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary"> Ativamento imediato</label>
+                        <div class="mt-auto grid grid-cols-2 gap-2 pt-4">
+                            <button id="btnClearSupplier" type="button" class="border border-slate-300 px-4 py-2 rounded text-sm hover:bg-slate-50 font-bold">Limpar</button>
+                            <button id="btnSaveSupplier" type="submit" class="bg-primary text-white border border-primary px-4 py-2 rounded text-sm hover:brightness-110 font-bold">Salvar Dados</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Management: Purchase Entries -->
+            <div id="purchase-tab" class="tab-content flex-1 overflow-hidden p-lg">
+                <div class="flex h-full gap-4">
+                    <form class="w-[450px] bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col overflow-hidden">
+                        <div class="p-lg border-b border-slate-100 bg-slate-50">
+                            <h3 class="font-bold text-xl mb-4">Nota de Entrada (Estoque)</h3>
+                            <div class="space-y-3">
+                                <div><label class="block text-xs font-bold text-slate-500 mb-1">Fornecedor Vinculado</label><select id="purchaseSupplier" class="w-full border border-slate-300 p-2 rounded text-sm outline-none"></select></div>
+                                <div><label class="block text-xs font-bold text-slate-500 mb-1">Nº NF-e / Documento</label><input type="text" id="purchaseInvoice" placeholder="NF-0001" class="w-full border border-slate-300 p-2 rounded text-sm outline-none"></div>
+                            </div>
+                        </div>
+                        <div class="p-lg bg-white flex-1 overflow-y-auto">
+                            <h4 class="text-sm font-bold text-slate-700 mb-2">Bipagem de Produtos</h4>
+                            <div class="flex gap-2 mb-4">
+                                <input type="text" id="purchaseBarcode" placeholder="SKU do Produto" class="w-1/2 border border-slate-300 p-2 rounded text-sm outline-none">
+                                <input type="number" id="purchaseQuantity" placeholder="Qtd." min="0.001" step="0.001" value="1" class="w-1/4 border border-slate-300 p-2 rounded text-sm outline-none">
+                                <input type="number" id="purchaseUnitCost" placeholder="R$ Custo" min="0" step="0.01" class="w-1/4 border border-slate-300 p-2 rounded text-sm outline-none">
+                            </div>
+                            <button id="btnAddPurchaseItem" type="button" class="w-full border-2 border-dashed border-primary text-primary hover:bg-indigo-50 font-bold py-2 rounded text-sm mb-4 transition-colors">✚ Agregar Item à Nota</button>
+                            
+                            <div class="text-xs uppercase font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1">Lista de Recebimento</div>
+                            <div id="purchaseItemsList" class="space-y-2 text-sm text-slate-700 divide-y divide-slate-50">
+                                <!-- JS Populated -->
+                            </div>
+                        </div>
+                        <div class="p-lg bg-indigo-900 border-t border-slate-200 mt-auto text-white">
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="text-indigo-200 text-sm font-bold uppercase">Valor da Nota / Custo</span>
+                                <strong id="purchaseTotal" class="text-2xl tracking-tighter">R$ 0,00</strong>
+                            </div>
+                            <button id="btnConfirmPurchase" type="button" class="w-full bg-white text-indigo-900 shadow-xl font-black py-4 rounded-xl hover:bg-slate-100 transition-colors uppercase tracking-wider text-sm flex items-center justify-center gap-2"><span class="material-symbols-outlined text-xl">inventory_2</span> Integralizar Estoque</button>
+                        </div>
+                    </form>
+                    <div class="flex-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                        <div class="p-md border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h3 class="font-bold text-lg">Histórico de NFs Registradas</h3>
+                            <button id="btnRefreshPurchases" class="bg-white border border-slate-300 rounded px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-100 shadow-sm flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">sync</span> Atualizar</button>
+                        </div>
+                        <div class="flex-1 overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-100 sticky top-0">
+                                    <tr>
+                                        <th class="p-3 font-semibold text-slate-600">NF-e Documento</th>
+                                        <th class="p-3 font-semibold text-slate-600">Fornecedor Emissor</th>
+                                        <th class="p-3 font-semibold text-slate-600">Recepção Interna</th>
+                                        <th class="p-3 font-semibold text-slate-600 text-right">Montante / Custo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchaseEntriesBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports-tab" class="tab-content flex-1 overflow-y-auto p-lg custom-scrollbar space-y-md">
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-lg">
+                    <div class="flex flex-col md:flex-row justify-between mb-4 border-b border-slate-100 pb-4">
+                        <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2"><span class="material-symbols-outlined text-primary">pie_chart</span> Inteligência de Negócios (BI)</h3>
+                        <div class="flex items-center gap-3">
+                            <input type="date" id="reportFrom" class="bg-slate-50 border border-slate-300 p-2 rounded text-sm text-slate-700 outline-none">
+                            <span class="text-slate-400 font-bold text-xs uppercase">até</span>
+                            <input type="date" id="reportTo" class="bg-slate-50 border border-slate-300 p-2 rounded text-sm text-slate-700 outline-none">
+                            <input type="text" id="reportTerminal" placeholder="Terminal" class="bg-slate-50 border border-slate-300 p-2 rounded text-sm text-slate-700 outline-none w-28">
+                            <button id="btnLoadReports" class="bg-primary text-white font-bold px-4 py-2 rounded text-sm ml-2">Filtrar</button>
+                            <button id="btnExportReports" class="bg-white border border-slate-300 text-slate-700 font-bold px-4 py-2 rounded text-sm">CSV</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-md mb-6">
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-md text-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
+                            <span class="block text-xs uppercase font-bold text-slate-500 mb-1">Ticket Quantity (Vendas)</span>
+                            <strong id="reportSalesCount" class="text-3xl font-black text-slate-800">0</strong>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-md text-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)] border-b-4 border-b-green-500">
+                            <span class="block text-xs uppercase font-bold text-slate-500 mb-1">Receita Líquida Real</span>
+                            <strong id="reportNetRevenue" class="text-3xl font-black text-green-700">R$ 0,00</strong>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-md text-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)] border-b-4 border-b-red-400">
+                            <span class="block text-xs uppercase font-bold text-slate-500 mb-1">Gordura Perdida (Descontos)</span>
+                            <strong id="reportDiscounts" class="text-3xl font-black text-red-600">R$ 0,00</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h4 class="text-xs uppercase font-bold text-slate-400 mb-4 border-b border-slate-100 pb-1">Distribuição de Capital (Heatmap by Hour)</h4>
+                        <div id="salesByHour" class="space-y-3 min-h-[100px]">
+                            <!-- Graph dynamically populated. The script.js injects .bar-row, .bar-track, .bar-fill, span, strong -->
+                            <!-- Since we deleted the classes in styles.css, let's just make sure script.js doesn't break, wait! 
+                                 I'll add the very basic CSS for the bar chart in styles.css or here via Tailwind if I can.
+                                 Since script.js sets `class="bar-row"`... I might need to append inline styles or update script.js -->
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <h4 class="text-xs uppercase font-bold text-slate-400 mb-4 border-b border-slate-100 pb-1">Breakdown por metodo de pagamento</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 text-slate-500">
+                                    <tr><th class="p-3">Metodo</th><th class="p-3 text-center">Qtde</th><th class="p-3 text-right">Total</th></tr>
+                                </thead>
+                                <tbody id="paymentBreakdownBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-0 overflow-hidden">
+                    <div class="bg-slate-50 p-md border-b border-slate-200 flex items-center justify-between">
+                         <h3 class="font-bold text-lg text-slate-800">Histórico Físico de Movimentação do Estoque (Log)</h3>
+                    </div>
+                    <div class="max-h-[300px] overflow-y-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-white sticky top-0 border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3 text-slate-500">Entidade/Item Modificado</th>
+                                    <th class="p-3 text-slate-500">Tipo de Evento</th>
+                                    <th class="p-3 text-slate-500 text-center">Variável (Qtd)</th>
+                                    <th class="p-3 text-slate-500 text-right">Selo de Tempo (UTC)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryMovementsBody" class="divide-y divide-slate-50 font-medium text-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </section>
+
+    <!-- Specific Scripts for inline fixes since script.js classes were deleted -->
+    <style>
+        .bar-row { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #475569; }
+        .bar-track { flex: 1; height: 12px; background: #f1f5f9; border-radius: 999px; overflow: hidden; }
+        .bar-fill { height: 100%; background: #4f46e5; border-radius: 999px; }
+        .empty-note { font-style: italic; color: #94a3b8; text-align: center; padding: 1rem; }
+        .money { font-family: monospace; font-weight: bold; }
+        .error-cell { color: #dc2626; text-align: center; font-weight: 500; }
+        td, th { padding-top: 12px; padding-bottom: 12px; } /* global td th padding since they are injected raw */
+    </style>
 
     <script src="script.js"></script>
 </body>
