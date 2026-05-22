@@ -1,0 +1,10 @@
+# Uso: docker compose -f docker-compose.yml -f docker-compose.dev.yml up db -d
+# Sobrescreve a porta e auth para desenvolvimento local no Windows
+# (necessário porque o PostgreSQL nativo ocupa a porta 5432)
+services:
+  db:
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_INITDB_ARGS: "--auth-host=trust"
