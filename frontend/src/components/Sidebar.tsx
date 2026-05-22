@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, ShoppingCart, Package, ClipboardList, DollarSign, Truck, FileText, LogOut } from 'lucide-react'
+import { LayoutDashboard, ShoppingCart, Package, ClipboardList, DollarSign, Truck, FileText, LogOut, Users, Tag } from 'lucide-react'
 import { useAuthStore } from '../store/auth'
 import { api } from '../api/client'
 
@@ -7,6 +7,8 @@ const links = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/pdv', icon: ShoppingCart, label: 'Frente de Caixa' },
   { to: '/catalog', icon: Package, label: 'Catálogo' },
+  { to: '/categories', icon: Tag, label: 'Categorias' },
+  { to: '/customers', icon: Users, label: 'Clientes' },
   { to: '/sales', icon: ClipboardList, label: 'Histórico' },
   { to: '/cash', icon: DollarSign, label: 'Caixa' },
   { to: '/suppliers', icon: Truck, label: 'Fornecedores' },

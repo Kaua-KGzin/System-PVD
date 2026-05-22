@@ -10,6 +10,8 @@ import SalesHistoryPage from './pages/SalesHistoryPage'
 import CashPage from './pages/CashPage'
 import SuppliersPage from './pages/SuppliersPage'
 import ReportsPage from './pages/ReportsPage'
+import CustomersPage from './pages/CustomersPage'
+import CategoriesPage from './pages/CategoriesPage'
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } })
 
@@ -27,6 +29,8 @@ function ProtectedLayout() {
           <Route path="/sales" element={<SalesHistoryPage />} />
           <Route path="/cash" element={<CashPage />} />
           <Route path="/suppliers" element={<SuppliersPage />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

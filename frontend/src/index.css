@@ -216,6 +216,24 @@ button { cursor: pointer; border: none; font-family: inherit; font-size: 14px; }
 .login-card form { display: flex; flex-direction: column; gap: 16px; }
 .login-error { color: var(--danger); font-size: 13px; }
 
+/* ── Filters row ── */
+.filters-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.toggle-label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; color: var(--text); white-space: nowrap; }
+.toggle-label input[type="checkbox"] { cursor: pointer; }
+.row-inactive td { opacity: 0.55; }
+.text-muted { color: var(--text-muted); }
+
+/* ── Categories grid ── */
+.categories-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.category-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; transition: box-shadow 0.15s; }
+.category-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.category-inactive { opacity: 0.6; }
+.category-icon { color: var(--primary); background: #eff6ff; border-radius: 8px; padding: 8px; display: flex; flex-shrink: 0; }
+.category-info { flex: 1; min-width: 0; }
+.category-name { font-weight: 600; font-size: 14px; }
+.category-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.category-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
 /* ── Utilities ── */
 .font-mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
 .font-semibold { font-weight: 600; }
