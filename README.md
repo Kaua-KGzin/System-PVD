@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏪 PDV System — ERP / Ponto de Venda
+# 🏪 ARCH System — Sistema de Gestão Comercial
 
 **Sistema de gestão de vendas completo — Backend .NET 10 · React 19 · PostgreSQL**
 
@@ -83,14 +83,14 @@ cd System-PVD
 
 # Restaurar e rodar
 dotnet restore
-dotnet run --project .\Pdv.Backend\Pdv.Backend.csproj
+dotnet run --project .\Archlab.Backend\Archlab.Backend.csproj
 
 # A API sobe em https://localhost:5235
 # OpenAPI: https://localhost:5235/openapi/v1.json
 # Health:  https://localhost:5235/health
 ```
 
-O banco SQLite é criado automaticamente em `Pdv.Backend/pdv.db` com 4 produtos seed.
+O banco SQLite é criado automaticamente em `Archlab.Backend/pdv.db` com 4 produtos seed.
 
 ---
 
@@ -160,7 +160,7 @@ npm run dev   # http://localhost:5173
 
 ```
 System-PVD/
-├── Pdv.Backend/
+├── Archlab.Backend/
 │   ├── Domain/          # Entidades: Product, Sale, CashSession, etc.
 │   ├── Data/            # DbContext + Migrations + DatabaseSeeder
 │   ├── Services/        # Regras de negócio (SaleService, etc.)
@@ -189,7 +189,7 @@ System-PVD/
 
 <div align="center">
 
-**PDV System · Roadmap 8 semanas · Privado**<br>
+**ARCHlab · Roadmap 8 semanas · Privado**<br>
 Kauã (Tech Lead) · Pedro (Database) · Kerlon (Frontend/UX)
 
 </div>
