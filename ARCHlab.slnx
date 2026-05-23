@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Archlab.Backend/Archlab.Backend.csproj" />
+  <Project Path="Archlab.Backend.Tests/Archlab.Backend.Tests.csproj" />
+</Solution>

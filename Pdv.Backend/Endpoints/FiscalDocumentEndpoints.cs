@@ -25,6 +25,15 @@ public static class FiscalDocumentEndpoints
             (await service.GetBySaleAsync(saleId, cancellationToken)).ToHttpResult())
             .WithName("GetFiscalDocumentBySale");
 
+        // XML payload contains sensitive fiscal data (CPF, amounts) — Admin/Manager only.
+        group.MapGet("/sale/{saleId:guid}/xml", async (
+            Guid saleId,
+            FiscalDocumentService service,
+            CancellationToken cancellationToken) =>
+            (await service.GetXmlBySaleAsync(saleId, cancellationToken)).ToHttpResult())
+            .WithName("GetFiscalDocumentXmlBySale")
+            .RequireAuthorization("AdminOrManager");
+
         return app;
     }
 }

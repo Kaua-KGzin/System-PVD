@@ -19,7 +19,11 @@ public static class CashRegisterEndpoints
             int page = 1,
             int pageSize = 20,
             CancellationToken cancellationToken = default) =>
-            Results.Ok(await service.ListAsync(terminalId, onlyOpen, page, pageSize, cancellationToken)))
+        {
+            var resolvedPage = page < 1 ? 1 : page;
+            var resolvedPageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
+            return Results.Ok(await service.ListAsync(terminalId, onlyOpen, resolvedPage, resolvedPageSize, cancellationToken));
+        })
             .WithName("ListCashSessions");
 
         group.MapGet("/{id:guid}", async (

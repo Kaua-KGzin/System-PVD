@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Pdv.Backend.Contracts;
 using Pdv.Backend.Data;
@@ -10,14 +11,18 @@ public sealed class ProductService(PdvDbContext db)
     public async Task<PagedResponse<ProductResponse>> SearchAsync(
         string? search,
         bool includeInactive,
+        Guid? categoryId,
         int page,
         int pageSize,
         CancellationToken cancellationToken)
     {
-        var query = db.Products.AsNoTracking();
+        IQueryable<Product> query = db.Products.AsNoTracking().Include(p => p.Category);
 
         if (!includeInactive)
             query = query.Where(product => product.IsActive);
+
+        if (categoryId.HasValue)
+            query = query.Where(product => product.CategoryId == categoryId.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -43,7 +48,7 @@ public sealed class ProductService(PdvDbContext db)
 
     public async Task<ServiceResult<ProductResponse>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        var product = await db.Products.AsNoTracking()
+        var product = await db.Products.AsNoTracking().Include(p => p.Category)
             .FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
 
         return product is null
@@ -54,7 +59,7 @@ public sealed class ProductService(PdvDbContext db)
     public async Task<ServiceResult<ProductResponse>> GetByBarcodeAsync(string barcode, CancellationToken cancellationToken)
     {
         var normalizedBarcode = Normalize(barcode);
-        var product = await db.Products.AsNoTracking()
+        var product = await db.Products.AsNoTracking().Include(p => p.Category)
             .FirstOrDefaultAsync(product => product.Barcode == normalizedBarcode, cancellationToken);
 
         return product is null
@@ -77,6 +82,9 @@ public sealed class ProductService(PdvDbContext db)
         if (sku is not null && await db.Products.AnyAsync(product => product.Sku == sku, cancellationToken))
             return ServiceResult<ProductResponse>.Fail("Ja existe um produto com este SKU.", StatusCodes.Status409Conflict);
 
+        if (request.CategoryId.HasValue && !await db.Categories.AnyAsync(c => c.Id == request.CategoryId.Value, cancellationToken))
+            return ServiceResult<ProductResponse>.Fail("Categoria nao encontrada.", StatusCodes.Status404NotFound);
+
         var product = new Product
         {
             Barcode = barcode,
@@ -86,6 +94,7 @@ public sealed class ProductService(PdvDbContext db)
             UnitPrice = request.UnitPrice,
             StockQuantity = request.StockQuantity,
             MinStockQuantity = request.MinStockQuantity,
+            CategoryId = request.CategoryId,
             IsActive = request.IsActive
         };
 
@@ -114,12 +123,16 @@ public sealed class ProductService(PdvDbContext db)
         if (sku is not null && await db.Products.AnyAsync(other => other.Id != id && other.Sku == sku, cancellationToken))
             return ServiceResult<ProductResponse>.Fail("Ja existe outro produto com este SKU.", StatusCodes.Status409Conflict);
 
+        if (request.CategoryId.HasValue && !await db.Categories.AnyAsync(c => c.Id == request.CategoryId.Value, cancellationToken))
+            return ServiceResult<ProductResponse>.Fail("Categoria nao encontrada.", StatusCodes.Status404NotFound);
+
         product.Barcode = barcode;
         product.Sku = sku;
         product.Name = request.Name.Trim();
         product.UnitOfMeasure = request.UnitOfMeasure.Trim().ToUpperInvariant();
         product.UnitPrice = request.UnitPrice;
         product.MinStockQuantity = request.MinStockQuantity;
+        product.CategoryId = request.CategoryId;
         product.IsActive = request.IsActive;
         product.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -132,6 +145,8 @@ public sealed class ProductService(PdvDbContext db)
     {
         if (request.QuantityDelta == 0)
             return ServiceResult<ProductResponse>.Fail("A quantidade de ajuste precisa ser diferente de zero.");
+
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
         var product = await db.Products.FirstOrDefaultAsync(product => product.Id == id, cancellationToken);
         if (product is null)
@@ -153,6 +168,7 @@ public sealed class ProductService(PdvDbContext db)
         });
 
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return ServiceResult<ProductResponse>.Ok(ProductResponse.From(product));
     }

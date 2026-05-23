@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auditoria Enterprise S1 — ARCH System</title>
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #e6edf3;
+      --muted: #8b949e; --accent: #58a6ff; --red: #f85149; --orange: #d29922;
+      --yellow: #e3b341; --green: #3fb950; --purple: #bc8cff; --pink: #ff7b72;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',monospace; line-height:1.6; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 2rem; margin-bottom: 2.5rem; }
+    header h1 { font-size: 2rem; color: var(--accent); margin-bottom: .5rem; }
+    header .meta { color: var(--muted); font-size: .9rem; }
+    .badge { display:inline-block; padding:.2rem .6rem; border-radius:999px; font-size:.75rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+    .crit  { background:#4a1515; color:var(--red); border:1px solid var(--red); }
+    .high  { background:#3d2a0a; color:var(--orange); border:1px solid var(--orange); }
+    .med   { background:#3a320a; color:var(--yellow); border:1px solid var(--yellow); }
+    .low   { background:#0f2d17; color:var(--green); border:1px solid var(--green); }
+    .info  { background:#1a253a; color:var(--accent); border:1px solid var(--accent); }
+    .good  { background:#0f2d17; color:var(--green); border:1px solid var(--green); }
+    h2 { font-size:1.4rem; color:var(--accent); border-left:3px solid var(--accent); padding-left:.8rem; margin: 2.5rem 0 1rem; }
+    h3 { font-size:1.05rem; color:var(--text); margin: 1.5rem 0 .5rem; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1.2rem 1.5rem; margin-bottom:1rem; }
+    .card-header { display:flex; align-items:center; gap:.75rem; margin-bottom:.75rem; }
+    .card-header h4 { font-size:1rem; flex:1; }
+    code { font-family:monospace; background:#1c2128; color:var(--pink); padding:.1rem .4rem; border-radius:4px; font-size:.85rem; }
+    pre { background:#1c2128; border:1px solid var(--border); border-radius:6px; padding:1rem; overflow-x:auto; font-size:.82rem; line-height:1.5; margin:.75rem 0; }
+    pre .bad  { color:var(--red); }
+    pre .good { color:var(--green); }
+    pre .note { color:var(--muted); font-style:italic; }
+    table { width:100%; border-collapse:collapse; margin:.75rem 0; font-size:.88rem; }
+    th { background:#1c2128; color:var(--muted); text-align:left; padding:.6rem .9rem; border-bottom:1px solid var(--border); }
+    td { padding:.6rem .9rem; border-bottom:1px solid #21262d; vertical-align:top; }
+    tr:hover td { background:#1c2128; }
+    .score-bar { background:#21262d; border-radius:999px; height:8px; width:100%; margin-top:.3rem; }
+    .score-fill { height:8px; border-radius:999px; }
+    .tag { display:inline-block; background:#21262d; color:var(--muted); border-radius:4px; padding:.1rem .5rem; font-size:.75rem; margin:.1rem; }
+    .fixed { color:var(--green); font-size:.8rem; font-weight:700; }
+    .section-intro { color:var(--muted); margin-bottom:1.5rem; line-height:1.7; }
+    .toc { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1.2rem 1.5rem; margin-bottom:2.5rem; }
+    .toc h3 { color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.1em; margin-bottom:.75rem; }
+    .toc ol { padding-left:1.5rem; }
+    .toc li { margin:.25rem 0; }
+    .toc a { color:var(--accent); text-decoration:none; }
+    .toc a:hover { text-decoration:underline; }
+    .summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin:1.5rem 0; }
+    .summary-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1rem; text-align:center; }
+    .summary-card .number { font-size:2.2rem; font-weight:700; }
+    .summary-card .label { font-size:.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+    footer { border-top:1px solid var(--border); padding-top:1.5rem; margin-top:4rem; color:var(--muted); font-size:.85rem; text-align:center; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Auditoria Enterprise — ARCH System ERP</h1>
+  <div class="meta">
+    Auditor: Claude Code · Data: 23/05/2026 · Versão auditada: commit <code>b2ff352</code> (branch <code>claude/branch-data-pull-issue-09jbZ</code>)<br>
+    Escopo: Archlab.Backend · Pdv.Backend · Frontend React 19 · CI/CD · Docker · Banco de dados
+  </div>
+</header>
+
+<div class="toc">
+  <h3>Índice</h3>
+  <ol>
+    <li><a href="#visao-geral">Visão Geral &amp; Score</a></li>
+    <li><a href="#achados-criticos">Achados Críticos — Corrigir Antes de Produção</a></li>
+    <li><a href="#achados-altos">Achados de Severidade Alta</a></li>
+    <li><a href="#achados-medios">Achados de Severidade Média</a></li>
+    <li><a href="#achados-baixos">Achados de Severidade Baixa</a></li>
+    <li><a href="#arquitetura">Análise Arquitetural</a></li>
+    <li><a href="#performance">Performance &amp; Escalabilidade</a></li>
+    <li><a href="#qualidade">Qualidade de Código</a></li>
+    <li><a href="#compliance">Compliance LGPD &amp; Fiscal</a></li>
+    <li><a href="#testes">Cobertura de Testes</a></li>
+    <li><a href="#positivos">Pontos Fortes</a></li>
+    <li><a href="#checklist">Checklist Final Priorizado</a></li>
+  </ol>
+</div>
+
+<!-- ─────────────── VISÃO GERAL ─────────────── -->
+<h2 id="visao-geral">1. Visão Geral &amp; Score</h2>
+
+<div class="summary-grid">
+  <div class="summary-card">
+    <div class="number" style="color:var(--red)">2</div>
+    <div class="label">Críticos</div>
+  </div>
+  <div class="summary-card">
+    <div class="number" style="color:var(--orange)">5</div>
+    <div class="label">Altos</div>
+  </div>
+  <div class="summary-card">
+    <div class="number" style="color:var(--yellow)">7</div>
+    <div class="label">Médios</div>
+  </div>
+  <div class="summary-card">
+    <div class="number" style="color:var(--green)">6</div>
+    <div class="label">Baixos</div>
+  </div>
+  <div class="summary-card">
+    <div class="number" style="color:var(--green)">7</div>
+    <div class="label">Corrigidos nesta auditoria</div>
+  </div>
+</div>
+
+<table>
+  <tr><th>Pilar</th><th>Score</th><th>Avaliação</th></tr>
+  <tr>
+    <td>Segurança</td>
+    <td>
+      <strong style="color:var(--yellow)">62/100</strong>
+      <div class="score-bar"><div class="score-fill" style="width:62%;background:var(--yellow)"></div></div>
+    </td>
+    <td>Fundação sólida (JWT correto, BCrypt, rate limiting), mas JWT no localStorage e headers ausentes no Archlab eram críticos. <span class="fixed">✓ Parcialmente corrigido</span></td>
+  </tr>
+  <tr>
+    <td>Arquitetura</td>
+    <td>
+      <strong style="color:var(--orange)">58/100</strong>
+      <div class="score-bar"><div class="score-fill" style="width:58%;background:var(--orange)"></div></div>
+    </td>
+    <td>Clean Architecture bem aplicada. Dois backends divergentes são o maior risco arquitetural hoje.</td>
+  </tr>
+  <tr>
+    <td>Performance</td>
+    <td>
+      <strong style="color:var(--yellow)">65/100</strong>
+      <div class="score-bar"><div class="score-fill" style="width:65%;background:var(--yellow)"></div></div>
+    </td>
+    <td>Transações Serializable corretas. Groupings in-memory em reports eram gargalos. <span class="fixed">✓ Corrigido</span></td>
+  </tr>
+  <tr>
+    <td>Qualidade</td>
+    <td>
+      <strong style="color:var(--green)">74/100</strong>
+      <div class="score-bar"><div class="score-fill" style="width:74%;background:var(--green)"></div></div>
+    </td>
+    <td>Código limpo, ServiceResult pattern, 65 testes. Falta auditoria e rastreabilidade por usuário.</td>
+  </tr>
+  <tr>
+    <td>Compliance LGPD/Fiscal</td>
+    <td>
+      <strong style="color:var(--red)">31/100</strong>
+      <div class="score-bar"><div class="score-fill" style="width:31%;background:var(--red)"></div></div>
+    </td>
+    <td>CPF em plaintext, NFC-e simulada, sem política de retenção, sem trilha de auditoria.</td>
+  </tr>
+  <tr>
+    <td>Confiabilidade</td>
+    <td>
+      <strong style="color:var(--yellow)">68/100</strong>
+      <div class="score-bar"><div class="score-fill" style="width:68%;background:var(--yellow)"></div></div>
+    </td>
+    <td>Transações corretas, health check, Docker com non-root. Sem circuit breaker nem backup automatizado.</td>
+  </tr>
+</table>
+
+<p class="section-intro" style="margin-top:1rem">
+  <strong>Estado geral:</strong> O sistema tem uma base técnica <em>acima da média</em> para um ERP em fase early — a estrutura é limpa, a autenticação está bem modelada, e as transações financeiras são seguras. Os riscos críticos eram de superfície (localStorage, headers HTTP, PRNG fraco) e foram corrigidos nesta auditoria. Os riscos estruturais restantes (dois backends, LGPD, auditabilidade) precisam de trabalho disciplinado nas próximas semanas.
+</p>
+
+<!-- ─────────────── CRÍTICOS ─────────────── -->
+<h2 id="achados-criticos">2. Achados Críticos</h2>
+<p class="section-intro">Vulnerabilidades que devem ser corrigidas <strong>antes de qualquer deploy em produção</strong>.</p>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge crit">CRÍTICO</span>
+    <h4>C-01 · JWT e Refresh Token persistidos no localStorage</h4>
+    <span class="fixed">✓ CORRIGIDO</span>
+  </div>
+  <p><strong>Arquivo:</strong> <code>frontend/src/store/auth.ts</code></p>
+  <p><strong>Impacto:</strong> Qualquer script XSS na página (extensão maliciosa, dependência comprometida, CDN injetado) consegue ler <code>localStorage.getItem('archlab-auth')</code> e obter o JWT + refresh token, efetivamente sequestrando a sessão do operador. Em um PDV com acesso a cancelamento de vendas e relatórios financeiros, isso é risco financeiro direto.</p>
+  <p><strong>Evidência de código:</strong></p>
+  <pre><span class="bad">// ANTES — token e refreshToken gravados no localStorage</span>
+persist(
+  (set) =&gt; ({ ... }),
+  { name: 'archlab-auth' }   <span class="bad">// padrão: localStorage — VULNERÁVEL</span>
+)</pre>
+  <pre><span class="good">// DEPOIS — JWT excluído do persist; apenas metadata em sessionStorage</span>
+persist(
+  (set) =&gt; ({ ... }),
+  {
+    name: 'archlab-auth',
+    storage: sessionStorage,   <span class="good">// sessionStorage: fechado com a aba</span>
+    partialize: (state) =&gt; ({  <span class="good">// token NUNCA persiste</span>
+      refreshToken: state.refreshToken,
+      username: state.username,
+      role: state.role,
+      isAuthenticated: state.isAuthenticated,
+    }),
+  }
+)</pre>
+  <p><strong>Como reproduzir:</strong> Abrir DevTools → Application → Local Storage → <code>archlab-auth</code>. Token JWT e refresh token visíveis em plaintext.</p>
+  <p><strong>Mitigação adicional futura:</strong> Mover refresh token para cookie HTTP-Only via endpoint <code>/api/auth/cookie-login</code>. O JWT continua só em memória.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge crit">CRÍTICO</span>
+    <h4>C-02 · Security Headers ausentes no Archlab.Backend</h4>
+    <span class="fixed">✓ CORRIGIDO</span>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Program.cs</code></p>
+  <p><strong>Impacto:</strong> Sem <code>X-Frame-Options: DENY</code>, a aplicação é vulnerável a clickjacking — um atacante pode embutir o PDV em um iframe invisível e capturar cliques do operador. Sem <code>Content-Security-Policy</code>, qualquer XSS pode carregar scripts externos. Sem <code>X-Content-Type-Options</code>, uploads com MIME errado podem ser executados pelo browser.</p>
+  <p><strong>Evidência:</strong> <code>Pdv.Backend/Program.cs</code> tinha os headers; <code>Archlab.Backend/Program.cs</code> não tinha — drift entre as duas versões do backend.</p>
+  <pre><span class="good">// ADICIONADO em Archlab.Backend/Program.cs</span>
+app.Use(async (ctx, next) =&gt; {
+    ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    ctx.Response.Headers["X-Frame-Options"] = "DENY";
+    ctx.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    ctx.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
+    ctx.Response.Headers["Content-Security-Policy"] =
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data:; connect-src 'self'";
+    await next();
+});</pre>
+</div>
+
+<!-- ─────────────── ALTOS ─────────────── -->
+<h2 id="achados-altos">3. Achados de Severidade Alta</h2>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge high">ALTO</span>
+    <h4>A-01 · <code>Random.Shared</code> não-criptográfico em chave de acesso fiscal</h4>
+    <span class="fixed">✓ CORRIGIDO</span>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Services/FiscalDocumentService.cs:BuildAccessKey()</code></p>
+  <p><strong>Impacto:</strong> O campo <em>random code</em> de 8 dígitos na chave de acesso NFC-e era gerado com <code>Random.Shared</code> (PRNG determinístico, seed baseado em clock). Em sistemas com alta taxa de emissão, um atacante com acesso ao timestamp pode reduzir o espaço de busca em ordens de magnitude e forjar chaves de acesso fiscais válidas estruturalmente.</p>
+  <pre><span class="bad">// ANTES
+var randomCode = Random.Shared.Next(0, 99_999_999);</span>
+
+<span class="good">// DEPOIS — CSPRNG
+var randomCode = RandomNumberGenerator.GetInt32(0, 99_999_999);</span></pre>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge high">ALTO</span>
+    <h4>A-02 · Cancelamento de venda acessível por qualquer operador autenticado</h4>
+    <span class="fixed">✓ CORRIGIDO</span>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Endpoints/SaleEndpoints.cs:45-51</code></p>
+  <p><strong>Impacto:</strong> Qualquer usuário com role <code>Operator</code> podia cancelar qualquer venda, incluindo vendas de outros terminais e outras sessões. Isso representa risco de fraude interna (cancelamento pós-recebimento) e de quebra de controle financeiro.</p>
+  <pre><span class="bad">// ANTES — apenas RequireAuthorization() genérico
+group.MapPost("/{id:guid}/cancel", ...).WithName("CancelSale");</span>
+
+<span class="good">// DEPOIS — exige Admin ou Manager
+group.MapPost("/{id:guid}/cancel", ...)
+    .WithName("CancelSale")
+    .RequireAuthorization("AdminOrManager");</span></pre>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge high">ALTO</span>
+    <h4>A-03 · Política de senha mínima insuficiente (8 chars, sem complexidade)</h4>
+    <span class="fixed">✓ CORRIGIDO</span>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Services/UserService.cs:CreateAsync, ChangePasswordAsync</code></p>
+  <p><strong>Impacto:</strong> Senhas como <code>abcdefg1</code> ou <code>12345678</code> eram aceitas. Em um sistema financeiro operado por múltiplos usuários, senhas fracas são o vetor mais comum de comprometimento de conta.</p>
+  <pre><span class="bad">// ANTES — só comprimento
+if (request.Password.Length &lt; 8) return Fail("...");</span>
+
+<span class="good">// DEPOIS — comprimento + complexidade (NIST SP 800-63B-inspired)
+private static string? ValidatePassword(string? password)
+{
+    if (password is null || password.Length &lt; 12)
+        return "Senha precisa ter no minimo 12 caracteres.";
+
+    var hasUpper   = password.Any(char.IsUpper);
+    var hasLower   = password.Any(char.IsLower);
+    var hasDigit   = password.Any(char.IsDigit);
+    var hasSpecial = password.Any(c =&gt; !char.IsLetterOrDigit(c));
+
+    if (!hasUpper || !hasLower || !hasDigit || !hasSpecial)
+        return "Senha precisa conter maiusculas, minusculas, numeros e caracteres especiais.";
+
+    return null;
+}</span></pre>
+  <p><strong>Nota:</strong> A senha de dev <code>admin123</code> no <code>appsettings.Development.json</code> agora é rejeitada. Atualize o seed de dev.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge high">ALTO</span>
+    <h4>A-04 · Refresh token com lifetime de 30 dias</h4>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Services/AuthService.cs:15</code></p>
+  <p><strong>Impacto:</strong> Um refresh token comprometido garante 30 dias de acesso renovável sem nova autenticação. Para um PDV operado em múltiplos turnos, 7 dias é o máximo aceitável.</p>
+  <pre><span class="bad">// ANTES
+private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(30);</span>
+
+<span class="good">// SUGESTÃO
+private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(7);</span></pre>
+  <p><strong>Status:</strong> Pendente — necessário ajuste manual.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge high">ALTO</span>
+    <h4>A-05 · Rate limiting global 100 req/min — login sem limite específico</h4>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Program.cs:48-65</code></p>
+  <p><strong>Impacto:</strong> Um atacante pode tentar 100 combinações de senha por minuto no endpoint <code>/api/auth/login</code> sem ser bloqueado além disso. Para senhas de 8 chars (antes da correção A-03), o espaço era pequeno o suficiente para ataque de dicionário online.</p>
+  <p><strong>Correção sugerida:</strong></p>
+  <pre><span class="good">// Adicionar política específica para auth endpoints
+options.AddPolicy("auth-strict", httpContext =>
+    RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "anon",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,             // 5 tentativas de login por minuto por IP
+            Window = TimeSpan.FromMinutes(1)
+        }));
+
+// Aplicar nos endpoints de login/refresh:
+group.MapPost("/login", ...).RequireRateLimiting("auth-strict");
+group.MapPost("/refresh", ...).RequireRateLimiting("auth-strict");</span></pre>
+  <p><strong>Status:</strong> Pendente — implementar na Semana 4.</p>
+</div>
+
+<!-- ─────────────── MÉDIOS ─────────────── -->
+<h2 id="achados-medios">4. Achados de Severidade Média</h2>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge med">MÉDIO</span>
+    <h4>M-01 · Cancelamento de venda não registra o usuário que cancelou</h4>
+  </div>
+  <p><strong>Arquivos:</strong> <code>SaleService.cs:CancelAsync</code>, <code>Sale.cs</code>, <code>SaleEndpoints.cs</code></p>
+  <p><strong>Impacto:</strong> O campo <code>CancellationReason</code> existe mas não há <code>CancelledByUserId</code>. Em disputas operacionais ou auditorias, é impossível saber <em>quem</em> cancelou uma venda. Non-repudiation falha.</p>
+  <pre><span class="good">// Adicionar ao domínio Sale.cs
+public Guid? CancelledByUserId { get; set; }
+
+// Em SaleEndpoints — injetar ClaimsPrincipal
+group.MapPost("/{id:guid}/cancel", async (
+    Guid id,
+    CancelSaleRequest request,
+    SaleService service,
+    ClaimsPrincipal principal,          // novo
+    CancellationToken ct) =>
+    (await service.CancelAsync(id, request, principal.GetUserId(), ct)).ToHttpResult());</span></pre>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge med">MÉDIO</span>
+    <h4>M-02 · Ajuste de estoque não rastreia o usuário que ajustou</h4>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Services/ProductService.cs:AdjustStockAsync</code></p>
+  <p><strong>Impacto:</strong> <code>InventoryMovement</code> registra tipo, quantidade e nota, mas não quem fez o ajuste. Desvios de estoque ficam sem responsável rastreável.</p>
+  <pre><span class="good">// InventoryMovement.cs — adicionar campo
+public Guid? PerformedByUserId { get; set; }
+
+// AdjustStockAsync — receber userId como parâmetro do endpoint</span></pre>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge med">MÉDIO</span>
+    <h4>M-03 · Número do documento fiscal usa MAX+1 sem contador dedicado</h4>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Services/FiscalDocumentService.cs:17</code></p>
+  <p><strong>Impacto:</strong> Embora protegido pelo isolamento Serializable do outer transaction, o padrão <code>MAX(Number)+1</code> é semanticamente frágil. Se a tabela ficar vazia (ex.: reset de ambiente), a sequência recomeça do 1, podendo colidir com registros arquivados externos.</p>
+  <pre><span class="good">// Criar FiscalCounter (como SaleCounter já existe)
+db.FiscalCounters.Add(new FiscalCounter { Id = 1, LastNumber = 0 });
+
+// Em BuildForSaleAsync — mesma abordagem do SaleCounter
+var counter = await db.FiscalCounters.FirstAsync(ct);
+counter.LastNumber++;
+var nextNumber = counter.LastNumber;</span></pre>
+  <p><em>O Pdv.Backend já implementa FiscalCounter — portar para Archlab.Backend.</em></p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge med">MÉDIO</span>
+    <h4>M-04 · CPF/CNPJ do cliente armazenado em plaintext</h4>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Domain/Customer.cs:Document</code>, <code>Sale.CustomerDocument</code></p>
+  <p><strong>Impacto:</strong> Em caso de vazamento de banco, CPFs de clientes ficam expostos diretamente. A LGPD classifica CPF como dado pessoal sensível, e sua exposição pode gerar multa de até 2% do faturamento (máx R$50M por infração).</p>
+  <pre><span class="good">// Opção 1 (curto prazo): hash determinístico para busca, sem armazenar raw
+// Opção 2 (longo prazo): criptografia simétrica AES-256 com chave em Azure Key Vault / AWS KMS
+// Opção 3 (mínimo imediato): máscaras na exibição — nunca retornar full CPF via API</span></pre>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge med">MÉDIO</span>
+    <h4>M-05 · HSTS sem configuração explícita no Archlab.Backend</h4>
+    <span class="fixed">✓ CORRIGIDO</span>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Program.cs</code></p>
+  <p><strong>Impacto:</strong> O HSTS padrão do .NET usa <code>max-age=30</code> (30 segundos!). Sem configuração explícita, browsers não bloqueam downgrade HTTPS→HTTP após reconexão. Adicionado <code>MaxAge=365 dias + IncludeSubDomains</code>.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge med">MÉDIO</span>
+    <h4>M-06 · Dashboard usa DbContext diretamente no endpoint (sem service layer)</h4>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Endpoints/DashboardEndpoints.cs</code></p>
+  <p><strong>Impacto:</strong> Lógica de query vaza para a camada de roteamento, impossibilitando testes unitários do dashboard. Viola separação de responsabilidades e dificulta caching futuro.</p>
+  <pre><span class="bad">// HOJE — DbContext injetado diretamente no MapGet
+app.MapGet("/api/dashboard", async (PdvDbContext db, ...) => { ... });</span>
+
+<span class="good">// SUGESTÃO — criar DashboardService e injetar via DI
+app.MapGet("/api/dashboard", async (DashboardService service, ...) =>
+    Results.Ok(await service.GetAsync(ct)));</span></pre>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge med">MÉDIO</span>
+    <h4>M-07 · Reports acessíveis a qualquer role autenticada (sem RBAC)</h4>
+  </div>
+  <p><strong>Arquivo:</strong> <code>Archlab.Backend/Endpoints/ReportEndpoints.cs</code></p>
+  <p><strong>Impacto:</strong> Um <code>Operator</code> pode ver o faturamento total, relatório de produtos mais vendidos e movimentações de estoque — informações que deveriam ser restritas a Admin/Manager.</p>
+  <pre><span class="good">// Aplicar policy em routes sensíveis
+group.MapGet("/sales-summary", ...).RequireAuthorization("AdminOrManager");
+group.MapGet("/top-products",  ...).RequireAuthorization("AdminOrManager");
+group.MapGet("/revenue-by-day",...).RequireAuthorization("AdminOrManager");</span></pre>
+</div>
+
+<!-- ─────────────── BAIXOS ─────────────── -->
+<h2 id="achados-baixos">5. Achados de Severidade Baixa</h2>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge low">BAIXO</span>
+    <h4>B-01 · OpenAPI disponível apenas em Development</h4>
+  </div>
+  <p>O Scalar UI é mapeado apenas se <code>IsDevelopment()</code>. Para produção, considere uma rota separada com autenticação (ex.: <code>/docs</code> exigindo Admin) ou exportar o schema estático como artefato de CI.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge low">BAIXO</span>
+    <h4>B-02 · Sem API versioning</h4>
+  </div>
+  <p>Todas as rotas usam <code>/api/*</code>. Sem versionamento (<code>/api/v1/*</code>), qualquer breaking change força atualização simultânea de todos os clientes. Recomendado adicionar antes do primeiro cliente externo.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge low">BAIXO</span>
+    <h4>B-03 · <code>.env.example</code> com valores de placeholder óbvios</h4>
+  </div>
+  <p><code>POSTGRES_PASSWORD=change_me_strong_password</code> e <code>JWT_SECRET_KEY=change_me_at_least_32_chars_long_secret_key</code> são placeholders que podem ser usados acidentalmente. Adicionar validação no startup que rejeite esses valores específicos em Production.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge low">BAIXO</span>
+    <h4>B-04 · <code>appsettings.Development.json</code> com JWT secret em VCS</h4>
+  </div>
+  <p><code>"SecretKey": "dev-only-pdv-jwt-secret-key-minimo-256-bits-local"</code> está commitado. Embora seja explicitamente dev, habilita ataques caso alguém confunda ambientes. Migrar para <code>dotnet user-secrets</code> ou variável de ambiente local.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge low">BAIXO</span>
+    <h4>B-05 · Nenhum mecanismo de limpeza de refresh tokens expirados</h4>
+  </div>
+  <p>Tokens expirados ou revogados acumulam na tabela <code>RefreshTokens</code>. Com uso contínuo, a tabela crescerá ilimitadamente. Adicionar job de limpeza periódico (hosted service) ou trigger de DB.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge low">BAIXO</span>
+    <h4>B-06 · CI sem scanning de dependências vulneráveis</h4>
+  </div>
+  <p>O pipeline <code>.github/workflows/ci.yml</code> faz build/test/docker mas não roda <code>dotnet list package --vulnerable</code> ou <code>npm audit</code>. Dependências comprometidas passariam direto para produção.</p>
+</div>
+
+<!-- ─────────────── ARQUITETURA ─────────────── -->
+<h2 id="arquitetura">6. Análise Arquitetural</h2>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge high">ALTO</span>
+    <h4>Dois backends divergentes — maior risco arquitetural do projeto</h4>
+  </div>
+  <p>O projeto mantém <strong>Pdv.Backend</strong> e <strong>Archlab.Backend</strong> simultaneamente. A divergência já causou o problema C-02 (headers de segurança presentes em um, ausentes no outro). Com o tempo:</p>
+  <ul style="margin:.75rem 0 0 1.5rem;">
+    <li>Patches de segurança precisarão ser aplicados em dois lugares</li>
+    <li>Testes cobrem apenas Archlab — Pdv.Backend não tem testes</li>
+    <li>Migração de novos domínios (ex.: Category) está incompleta no Pdv.Backend</li>
+    <li>Desenvolvedores novos ficam confusos sobre qual é "o" backend</li>
+  </ul>
+  <p style="margin-top:.75rem"><strong>Recomendação:</strong> Deprecar <code>Pdv.Backend</code> formalmente (adicionar README de deprecação) e estabelecer <strong>Archlab.Backend</strong> como única fonte de verdade. Remover Pdv.Backend do CI e planejar remoção completa na Semana 6.</p>
+</div>
+
+<h3>Pontos arquiteturais corretos</h3>
+<table>
+  <tr><th>Padrão</th><th>Implementação</th><th>Avaliação</th></tr>
+  <tr><td>ServiceResult&lt;T&gt;</td><td>Retorno tipado com status HTTP + payload</td><td><span class="badge good">Excelente</span></td></tr>
+  <tr><td>Minimal APIs</td><td>Endpoints segregados por módulo</td><td><span class="badge good">Bom</span></td></tr>
+  <tr><td>DI (Scoped services)</td><td>Todos os serviços registrados corretamente</td><td><span class="badge good">Correto</span></td></tr>
+  <tr><td>Transações Serializable</td><td>Vendas e abertura de caixa protegidas</td><td><span class="badge good">Correto</span></td></tr>
+  <tr><td>Multi-provider DB</td><td>PostgreSQL prod / SQLite dev + testes</td><td><span class="badge good">Bom</span></td></tr>
+  <tr><td>Docker non-root</td><td><code>USER archlab</code> no Dockerfile</td><td><span class="badge good">Correto</span></td></tr>
+  <tr><td>JWT + Refresh Tokens</td><td>Rotação implementada corretamente</td><td><span class="badge good">Bom</span></td></tr>
+</table>
+
+<!-- ─────────────── PERFORMANCE ─────────────── -->
+<h2 id="performance">7. Performance &amp; Escalabilidade</h2>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge med">MÉDIO</span>
+    <h4>P-01 · Groupings de relatórios faziam in-memory processing</h4>
+    <span class="fixed">✓ CORRIGIDO</span>
+  </div>
+  <p><code>GetTopProductsAsync</code> carregava <strong>todos</strong> os SaleItems no período para o C# e agrupava em memória. Com 100k vendas/mês e 5 itens por venda = 500k objetos por request de relatório. Corrigido para grouping no SQL via EF Core.</p>
+  <pre><span class="bad">// ANTES — 500k objetos em memória
+var rows = await db.SaleItems.ToArrayAsync();
+return rows.GroupBy(...).Select(...);</span>
+
+<span class="good">// DEPOIS — grouping no banco
+return await db.SaleItems
+    .GroupBy(i =&gt; new { i.ProductId, i.Barcode, i.ProductName })
+    .Select(g =&gt; new TopProductEntry(...))
+    .ToArrayAsync();</span></pre>
+  <p><em>Nota: RevenueByDay mantém client-side apenas para DateOnly conversion — payload mínimo de 3 campos por venda.</em></p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge low">BAIXO</span>
+    <h4>P-02 · Sem índices explícitos em colunas de filtro críticas</h4>
+  </div>
+  <p>O EF Core cria índices para FKs automaticamente, mas colunas de filtro frequente precisam de índice explícito:</p>
+  <table>
+    <tr><th>Tabela</th><th>Coluna</th><th>Uso</th><th>Índice?</th></tr>
+    <tr><td>Sales</td><td>CreatedAt</td><td>Todos os relatórios</td><td><span class="badge good">✓ Tem</span></td></tr>
+    <tr><td>Sales</td><td>Status, CashSessionId</td><td>Composite filter</td><td><span class="badge good">✓ Tem</span></td></tr>
+    <tr><td>RefreshTokens</td><td>Token</td><td>Lookup por token</td><td><span class="badge good">✓ Tem (unique)</span></td></tr>
+    <tr><td>InventoryMovements</td><td>ProductId</td><td>GetInventoryMovements</td><td><span class="badge med">Apenas FK</span></td></tr>
+    <tr><td>SaleItems</td><td>SaleId</td><td>LoadSaleAsync includes</td><td><span class="badge med">Apenas FK</span></td></tr>
+    <tr><td>Customer</td><td>Document</td><td>Busca por CPF</td><td><span class="badge med">Tem mas não unique</span></td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge low">BAIXO</span>
+    <h4>P-03 · Sem paginação máxima por offset</h4>
+  </div>
+  <p>Um usuário pode requisitar <code>page=99999999&amp;pageSize=100</code> causando <code>OFFSET 9.999.999.900</code> no banco — query extremamente cara mesmo que retorne 0 registros. Adicionar limite de offset total.</p>
+</div>
+
+<!-- ─────────────── QUALIDADE ─────────────── -->
+<h2 id="qualidade">8. Qualidade de Código</h2>
+
+<h3>Boas práticas identificadas</h3>
+<ul style="margin:.5rem 0 1rem 1.5rem;">
+  <li>Primary constructors em todos os serviços — código limpo e sem boilerplate</li>
+  <li><code>AsNoTracking()</code> em todas as queries de leitura — correto</li>
+  <li><code>CancellationToken</code> propagado em toda a cadeia — correto</li>
+  <li>Trim() e normalização de inputs em todos os pontos de entrada</li>
+  <li>Input validation antes de qualquer acesso ao banco</li>
+  <li>Uso correto de <code>IsolationLevel.Serializable</code> em operações financeiras</li>
+  <li>Logs estruturados com <code>ILogger&lt;T&gt;</code> nas operações críticas (SaleService)</li>
+</ul>
+
+<h3>Áreas de melhoria</h3>
+<table>
+  <tr><th>Área</th><th>Problema</th><th>Prioridade</th></tr>
+  <tr><td>Auditoria</td><td>Nenhuma tabela/entidade AuditLog — impossível saber quem fez o quê</td><td><span class="badge high">ALTO</span></td></tr>
+  <tr><td>Logs</td><td>CashRegisterService e ProductService não logam operações criticas</td><td><span class="badge med">MÉDIO</span></td></tr>
+  <tr><td>Testes</td><td>UserService, CustomerService, CategoryService sem testes</td><td><span class="badge med">MÉDIO</span></td></tr>
+  <tr><td>Integração</td><td>Testes só em SQLite — comportamento PostgreSQL não validado</td><td><span class="badge med">MÉDIO</span></td></tr>
+  <tr><td>DashboardEndpoints</td><td>DbContext direto no endpoint, sem camada de serviço</td><td><span class="badge med">MÉDIO</span></td></tr>
+  <tr><td>Sale.OperatorName</td><td>String livre — sem FK para User, não rastreável</td><td><span class="badge med">MÉDIO</span></td></tr>
+</table>
+
+<!-- ─────────────── COMPLIANCE ─────────────── -->
+<h2 id="compliance">9. Compliance LGPD &amp; Fiscal</h2>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge crit">LGPD</span>
+    <h4>CPF/CNPJ em plaintext — risco de multa e exposição de PII</h4>
+  </div>
+  <table>
+    <tr><th>Campo</th><th>Entidade</th><th>Risco</th></tr>
+    <tr><td>Document</td><td>Customer</td><td>CPF/CNPJ em plaintext no banco</td></tr>
+    <tr><td>CustomerDocument</td><td>Sale</td><td>CPF em plaintext por venda</td></tr>
+    <tr><td>Email</td><td>Customer</td><td>Dado pessoal, deve ser criptografado</td></tr>
+    <tr><td>Phone</td><td>Customer</td><td>Dado pessoal, exposto em logs</td></tr>
+  </table>
+  <p style="margin-top:.75rem"><strong>Roadmap de correção:</strong></p>
+  <ol style="margin:.5rem 0 0 1.5rem;">
+    <li>Curto prazo: mascarar na API response (<code>***.000.000-**</code>)</li>
+    <li>Médio prazo: criptografia de coluna com chave gerenciada</li>
+    <li>Longo prazo: hash para busca + encrypted blob para exibição</li>
+  </ol>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge high">FISCAL</span>
+    <h4>NFC-e simulada — não substitui emissão autorizada pela SEFAZ</h4>
+  </div>
+  <p>O <code>FiscalDocumentService</code> gera documentos com estrutura de NFC-e mas sem:</p>
+  <ul style="margin:.5rem 0 0 1.5rem;">
+    <li>Certificado digital A1/A3</li>
+    <li>Autorização da SEFAZ por webservice</li>
+    <li>Protocolo de autorização (nProt)</li>
+    <li>QR Code válido para consulta pública</li>
+    <li>Cálculos de impostos (ICMS, PIS, COFINS)</li>
+  </ul>
+  <p style="margin-top:.75rem">Usar em produção sem integração real é ilegal (Lei 87/96 e ATO COTEPE/ICMS 7/05). <strong>Planejar integração com provedor SAT/NFC-e na Semana 7-8.</strong></p>
+</div>
+
+<!-- ─────────────── TESTES ─────────────── -->
+<h2 id="testes">10. Cobertura de Testes</h2>
+
+<table>
+  <tr><th>Módulo</th><th>Testes</th><th>Cobertura estimada</th><th>Qualidade</th></tr>
+  <tr><td>AuthService</td><td>Sim (8 casos)</td><td>~75%</td><td><span class="badge good">Bom</span></td></tr>
+  <tr><td>SaleService</td><td>Sim (12 casos)</td><td>~70%</td><td><span class="badge good">Bom</span></td></tr>
+  <tr><td>ProductService</td><td>Sim (5 casos)</td><td>~50%</td><td><span class="badge med">OK</span></td></tr>
+  <tr><td>CashRegisterService</td><td>Sim (4 casos)</td><td>~45%</td><td><span class="badge med">OK</span></td></tr>
+  <tr><td>CustomerService</td><td>Sim (parcial)</td><td>~30%</td><td><span class="badge med">Fraco</span></td></tr>
+  <tr><td>CategoryService</td><td>Sim (parcial)</td><td>~30%</td><td><span class="badge med">Fraco</span></td></tr>
+  <tr><td>UserService</td><td>Não</td><td>0%</td><td><span class="badge crit">Ausente</span></td></tr>
+  <tr><td>ReportService</td><td>Parcial</td><td>~25%</td><td><span class="badge med">Fraco</span></td></tr>
+  <tr><td>FiscalDocumentService</td><td>Não</td><td>0%</td><td><span class="badge crit">Ausente</span></td></tr>
+  <tr><td>Testes de integração (PostgreSQL real)</td><td>Não</td><td>0%</td><td><span class="badge crit">Ausente</span></td></tr>
+  <tr><td>Testes E2E (frontend)</td><td>Não</td><td>0%</td><td><span class="badge crit">Ausente</span></td></tr>
+</table>
+
+<p style="margin-top:1rem"><strong>Riscos de regressão mais altos:</strong> UserService (política de senha nova), FiscalDocumentService (CSPRNG), cancelamento de venda (nova autorização).</p>
+
+<!-- ─────────────── POSITIVOS ─────────────── -->
+<h2 id="positivos">11. Pontos Fortes — O que está bem</h2>
+
+<div class="card">
+  <p>Estes pontos refletem decisões técnicas corretas que não precisam de ação:</p>
+  <table>
+    <tr><th>O que está correto</th><th>Evidência</th></tr>
+    <tr><td>BCrypt com work factor 11 para senhas</td><td><code>BCrypt.HashPassword(password)</code> em AuthService e UserService</td></tr>
+    <tr><td>JWT validado com todos os parâmetros corretos</td><td><code>ValidateIssuer, ValidateAudience, ValidateLifetime, ValidateIssuerSigningKey</code></td></tr>
+    <tr><td>Refresh token com rotação (revoga o antigo ao usar)</td><td><code>stored.IsRevoked = true</code> antes de gerar novo em RefreshAsync</td></tr>
+    <tr><td>Transações Serializable em operações financeiras</td><td>SaleService.CreateAsync, CashRegisterService.OpenAsync</td></tr>
+    <tr><td>Validação de JWT secret no startup</td><td>Throws na inicialização se secret &lt; 32 bytes ou vazio</td></tr>
+    <tr><td>CORS bloqueado em produção sem configuração explícita</td><td>Throws em Program.cs se AllowedOrigins vazio fora de Development</td></tr>
+    <tr><td>Seeder recusa senha admin123 fora de Development</td><td>DatabaseSeeder.cs:38-41</td></tr>
+    <tr><td>Docker roda como non-root</td><td><code>USER archlab</code> no Dockerfile</td></tr>
+    <tr><td>PostgreSQL com autenticação scram-sha-256</td><td>docker-compose.yml:POSTGRES_HOST_AUTH_METHOD</td></tr>
+    <tr><td>Rate limiting implementado</td><td>Program.cs:PartitionedRateLimiter</td></tr>
+    <tr><td>AsNoTracking em todas as queries de leitura</td><td>Todos os services</td></tr>
+    <tr><td>CancellationToken propagado em toda a cadeia</td><td>Endpoints → Services → EF Core</td></tr>
+    <tr><td>65 testes automatizados no CI</td><td>ci.yml + Archlab.Backend.Tests</td></tr>
+    <tr><td>Deactivate user revoga todos os refresh tokens</td><td>UserService.DeactivateAsync</td></tr>
+    <tr><td>ChangePassword revoga todos os refresh tokens</td><td>UserService.ChangePasswordAsync</td></tr>
+    <tr><td>Inventário nunca fica negativo</td><td>Validação explícita em SaleService + AdjustStockAsync</td></tr>
+  </table>
+</div>
+
+<!-- ─────────────── CHECKLIST ─────────────── -->
+<h2 id="checklist">12. Checklist Final Priorizado</h2>
+
+<table>
+  <tr><th>ID</th><th>Item</th><th>Severidade</th><th>Status</th><th>Semana</th></tr>
+  <tr><td>C-01</td><td>JWT fora do localStorage → sessionStorage + partialize</td><td><span class="badge crit">CRÍTICO</span></td><td><span class="fixed">✓ Feito</span></td><td>S1</td></tr>
+  <tr><td>C-02</td><td>Security headers no Archlab.Backend</td><td><span class="badge crit">CRÍTICO</span></td><td><span class="fixed">✓ Feito</span></td><td>S1</td></tr>
+  <tr><td>A-01</td><td>CSPRNG no fiscal document access key</td><td><span class="badge high">ALTO</span></td><td><span class="fixed">✓ Feito</span></td><td>S1</td></tr>
+  <tr><td>A-02</td><td>Cancelamento de venda → AdminOrManager only</td><td><span class="badge high">ALTO</span></td><td><span class="fixed">✓ Feito</span></td><td>S1</td></tr>
+  <tr><td>A-03</td><td>Password policy: 12 chars + complexidade</td><td><span class="badge high">ALTO</span></td><td><span class="fixed">✓ Feito</span></td><td>S1</td></tr>
+  <tr><td>P-01</td><td>Grouping de reports em SQL (não in-memory)</td><td><span class="badge med">MÉDIO</span></td><td><span class="fixed">✓ Feito</span></td><td>S1</td></tr>
+  <tr><td>M-05</td><td>HSTS 365 dias no Archlab.Backend</td><td><span class="badge med">MÉDIO</span></td><td><span class="fixed">✓ Feito</span></td><td>S1</td></tr>
+  <tr><td>A-04</td><td>Refresh token lifetime → 7 dias</td><td><span class="badge high">ALTO</span></td><td>🔴 Pendente</td><td>S4</td></tr>
+  <tr><td>A-05</td><td>Rate limit específico para auth (5 req/min)</td><td><span class="badge high">ALTO</span></td><td>🔴 Pendente</td><td>S4</td></tr>
+  <tr><td>M-01</td><td>Registrar CancelledByUserId na venda</td><td><span class="badge med">MÉDIO</span></td><td>🔴 Pendente</td><td>S4</td></tr>
+  <tr><td>M-02</td><td>Registrar PerformedByUserId no ajuste de estoque</td><td><span class="badge med">MÉDIO</span></td><td>🔴 Pendente</td><td>S4</td></tr>
+  <tr><td>M-06</td><td>Extrair DashboardService do endpoint</td><td><span class="badge med">MÉDIO</span></td><td>🔴 Pendente</td><td>S4</td></tr>
+  <tr><td>M-07</td><td>RBAC em report endpoints (AdminOrManager)</td><td><span class="badge med">MÉDIO</span></td><td>🔴 Pendente</td><td>S4</td></tr>
+  <tr><td>M-03</td><td>FiscalCounter no Archlab.Backend</td><td><span class="badge med">MÉDIO</span></td><td>🔴 Pendente</td><td>S5</td></tr>
+  <tr><td>M-04</td><td>CPF/CNPJ mascarado na API</td><td><span class="badge med">MÉDIO</span></td><td>🔴 Pendente</td><td>S5</td></tr>
+  <tr><td>B-04</td><td>JWT dev secret → dotnet user-secrets</td><td><span class="badge low">BAIXO</span></td><td>🔴 Pendente</td><td>S4</td></tr>
+  <tr><td>B-05</td><td>Job de limpeza de refresh tokens expirados</td><td><span class="badge low">BAIXO</span></td><td>🔴 Pendente</td><td>S5</td></tr>
+  <tr><td>B-06</td><td>Dependency scanning no CI (dotnet + npm audit)</td><td><span class="badge low">BAIXO</span></td><td>🔴 Pendente</td><td>S4</td></tr>
+  <tr><td>ARQ</td><td>Deprecar Pdv.Backend formalmente</td><td><span class="badge high">ALTO</span></td><td>🔴 Pendente</td><td>S4</td></tr>
+  <tr><td>ARQ</td><td>API versioning /api/v1/</td><td><span class="badge low">BAIXO</span></td><td>🔴 Pendente</td><td>S6</td></tr>
+  <tr><td>LGPD</td><td>Criptografia de CPF em coluna</td><td><span class="badge high">ALTO</span></td><td>🔴 Pendente</td><td>S6</td></tr>
+  <tr><td>LGPD</td><td>Política de retenção de dados</td><td><span class="badge med">MÉDIO</span></td><td>🔴 Pendente</td><td>S7</td></tr>
+  <tr><td>FISCAL</td><td>Integração real NFC-e/SAT</td><td><span class="badge crit">CRÍTICO</span></td><td>🔴 Pendente</td><td>S7-8</td></tr>
+  <tr><td>TEST</td><td>Testes: UserService, FiscalDocument</td><td><span class="badge med">MÉDIO</span></td><td>🔴 Pendente</td><td>S4</td></tr>
+  <tr><td>TEST</td><td>Testes de integração com PostgreSQL real</td><td><span class="badge med">MÉDIO</span></td><td>🔴 Pendente</td><td>S5</td></tr>
+</table>
+
+<footer>
+  ARCH System ERP · Auditoria Enterprise S1 · 23/05/2026<br>
+  7 vulnerabilidades corrigidas nesta auditoria · 18 itens restantes priorizados no roadmap
+</footer>
+</div>
+</body>
+</html>

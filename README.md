@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🏪 PDV System — ERP / Ponto de Venda
+# 🏪 ARCH System — Sistema de Gestão Comercial
 
-**Sistema de gestão de vendas completo — Backend .NET 10 · React 19 · PostgreSQL**
+**ERP / Ponto de Venda — Backend .NET 10 · React 19 · PostgreSQL**
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet)](https://dotnet.microsoft.com/)
 [![EF Core](https://img.shields.io/badge/EF_Core-10-7B68EE?style=for-the-badge)](https://learn.microsoft.com/ef/core/)
@@ -10,186 +10,204 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker)](https://www.docker.com/)
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions)](https://github.com/features/actions)
 
 </div>
 
 ---
 
-## 🗺️ Roadmap
+## 🚦 Status
 
-> **[→ Roadmap Interativo (8 semanas)](./roadmap.html)** — Análise técnica completa, tarefas por semana/responsável, matriz de riscos, checklist de entrega e script do demo. Abrir no browser.
-
-**[→ Roadmaps legados (Sprint 1 e 2)](./docs/roadmaps/)** — versões anteriores de referência.
-
----
-
-## 🚦 Status Atual
-
-| Área | Status | Observação |
-|------|--------|-----------|
-| Domain Model (8 entidades) | ✅ Pronto | Sólido, bem modelado |
-| ServiceResult&lt;T&gt; pattern | ✅ Pronto | Retorno tipado e explícito |
-| SaleService + transações DB | ✅ Pronto | BeginTransactionAsync correto |
-| Estoque + InventoryMovement | ✅ Pronto | Log de movimentações funcionando |
-| Multi-pagamento + troco | ✅ Pronto | Validação de método de troco OK |
-| CORS · OpenAPI · /health | ✅ Pronto | Configurados corretamente |
-| Cancelamento com estorno | ✅ Pronto | Estoque estornado na transação |
-| **JWT Auth / User entity** | 🔴 Pendente | **Sem autenticação — CRÍTICO** |
-| **EF Migrations** | 🔴 Pendente | **Usando EnsureCreated — PERIGO** |
-| **Race condition Sale.Number** | 🔴 Pendente | **MAX+1 sem lock — precisa fix** |
-| **Paginação nas listas** | 🔴 Pendente | ListSales retorna tudo sem limite |
-| Category · Customer · Supplier | 🔴 Pendente | Semana 2 |
-| Relatórios · Dashboard | 🟡 Planejado | Semana 3 |
-| Docker · CI/CD | 🟡 Planejado | Semana 5 |
-| PostgreSQL (prod) | 🟡 Planejado | Semana 4 |
-| Testes (xUnit + E2E) | 🟡 Planejado | Semanas 4–8 |
+| Área | Status |
+|------|--------|
+| Backend — Domain model (15 entidades) | ✅ |
+| JWT Auth + Refresh Tokens + RBAC | ✅ |
+| EF Core Migrations (PostgreSQL) | ✅ |
+| Race condition `Sale.Number` (lock serializable) | ✅ |
+| Multi-pagamento + troco + cancelamento | ✅ |
+| Estoque + InventoryMovement log | ✅ |
+| Category · Customer · Supplier · PurchaseEntry | ✅ |
+| Dashboard · Relatórios · Alertas de estoque | ✅ |
+| CashRegister (abertura/fechamento de caixa) | ✅ |
+| FiscalDocument (simulação NFC-e) | ✅ |
+| Testes xUnit — 65 testes (SQLite in-memory) | ✅ |
+| Docker + docker-compose (PostgreSQL 17) | ✅ |
+| GitHub Actions CI (build + test + docker build) | ✅ |
+| Frontend React 19 — 9 páginas | ✅ |
+| PostgreSQL como banco de produção | ✅ |
+| Deploy em produção | 🔴 Próximo |
 
 ---
 
-## 👥 Time
-
-| Membro | GitHub | Papéis |
-|--------|--------|--------|
-| **Kauã** | [@Kaua-KGzin](https://github.com/Kaua-KGzin) | Tech Lead · Architect · Backend · Security Eng · QA · DevOps |
-| **Kerlon** | — | Frontend Lead · UX/UI Designer · React · TypeScript |
-| **Pedro** | [@taskhyw](https://gitbub.com/taskhyw) | Database Architect · EF Core · Migrations · Query Performance |
-
----
-
-## 🧱 Stack Técnica
+## 🧱 Stack
 
 | Camada | Tecnologias |
 |--------|-------------|
-| **Backend** | C# 14 · ASP.NET Core 10 Minimal APIs · EF Core 10 · BCrypt.Net |
+| **Backend** | C# · ASP.NET Core 10 Minimal APIs · EF Core 10 · BCrypt.Net |
 | **Auth** | JWT Bearer · Refresh Tokens · Role-based Authorization |
-| **Banco (dev)** | SQLite 3 via EF Core |
-| **Banco (prod)** | PostgreSQL 17 via Npgsql |
-| **Frontend** | React 19 · TypeScript 5 · Vite · Axios · React Query · Zustand |
+| **Banco (dev/prod)** | PostgreSQL 17 via Npgsql · SQLite (testes in-memory) |
+| **Frontend** | React 19 · TypeScript · Vite · React Query · Zustand · React Router · Axios |
 | **Infra** | Docker · docker-compose · GitHub Actions CI |
-| **API Docs** | OpenAPI (Scalar UI) |
-| **Observabilidade** | Serilog · Health Checks · Rate Limiting |
+| **Docs** | OpenAPI (Scalar UI) · Health Checks · Rate Limiting |
 
 ---
 
-## 🚀 Como Rodar — Backend
+## 🚀 Rodar localmente
 
 ### Pré-requisitos
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [Node.js 20+](https://nodejs.org/)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-```powershell
-# Clonar o repositório
-git clone https://github.com/Kaua-KGzin/System-PVD.git
-cd System-PVD
+### 1. PostgreSQL via Docker
+```bash
+# Dev local (porta 5433 — evita conflito com PostgreSQL nativo no Windows)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up db -d
 
-# Restaurar e rodar
-dotnet restore
-dotnet run --project .\Pdv.Backend\Pdv.Backend.csproj
-
-# A API sobe em https://localhost:5235
-# OpenAPI: https://localhost:5235/openapi/v1.json
-# Health:  https://localhost:5235/health
+# Verificar que está pronto:
+docker compose exec db pg_isready -U archlab
 ```
 
-O banco SQLite é criado automaticamente em `Pdv.Backend/pdv.db` com 4 produtos seed.
-
----
-
-## 🚀 Como Rodar — Frontend (Em desenvolvimento)
-
-> O frontend definitivo (React 19 + TypeScript + Vite) está planejado para a **Semana 1 do roadmap**. O diretório `frontend-test/` contém um protótipo HTML/JS de integração com a API.
-
+### 2. Backend
 ```bash
-# Quando o frontend React estiver pronto:
+cd Archlab.Backend
+
+# SQLite (mais simples, sem Docker):
+dotnet run
+
+# PostgreSQL (com Docker acima):
+$env:DatabaseProvider="PostgreSQL"
+$env:ConnectionStrings__DefaultConnection="Host=localhost;Port=5433;Database=archlab;Username=archlab;Password=archlab_dev_password"
+dotnet run
+```
+
+API disponível em `http://localhost:5235`  
+OpenAPI: `http://localhost:5235/openapi/v1.json`  
+Health: `http://localhost:5235/health`
+
+Login padrão (dev): `admin` / `admin123`
+
+### 3. Frontend
+```bash
 cd frontend
 npm install
 npm run dev   # http://localhost:5173
 ```
 
+O Vite faz proxy `/api → http://localhost:5235` automaticamente.
+
+### 4. Testes
+```bash
+dotnet test Archlab.Backend.Tests
+# → 65/65 passando (SQLite in-memory, sem dependências externas)
+```
+
 ---
 
-## 📡 API Endpoints
+## 📡 Endpoints
 
-### 🔐 Auth *(em desenvolvimento — Semana 1)*
+### Auth
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | `POST` | `/api/auth/login` | Login → JWT + Refresh Token |
 | `POST` | `/api/auth/refresh` | Renovar JWT |
+| `POST` | `/api/auth/logout` | Revogar Refresh Token |
 
-### 📦 Produtos
+### Produtos / Categorias
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/api/products?page=1&pageSize=20&search=` | Listar (paginado) |
-| `POST` | `/api/products` | Criar produto |
-| `PUT` | `/api/products/{id}` | Atualizar produto |
-| `GET` | `/api/products/barcode/{barcode}` | Buscar por barcode |
-| `POST` | `/api/products/{id}/stock-adjustments` | Ajuste manual de estoque |
+| `GET` | `/api/products` | Listar paginado (`search`, `categoryId`, `lowStock`) |
+| `POST` | `/api/products` | Criar |
+| `PUT` | `/api/products/{id}` | Atualizar |
+| `GET` | `/api/products/barcode/{barcode}` | Buscar por código |
+| `POST` | `/api/products/{id}/stock-adjustments` | Ajuste manual |
+| `GET` | `/api/categories` | Listar categorias |
+| `POST` | `/api/categories` | Criar categoria |
+| `PUT` | `/api/categories/{id}` | Atualizar categoria |
 
-### 🏧 Caixa (Cash Sessions)
+### Clientes / Fornecedores
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/api/customers` | Listar paginado (`search`) |
+| `POST` | `/api/customers` | Criar |
+| `PUT` | `/api/customers/{id}` | Atualizar |
+| `GET` | `/api/suppliers` | Listar paginado |
+| `POST` | `/api/suppliers` | Criar |
+| `PUT` | `/api/suppliers/{id}` | Atualizar |
+| `POST` | `/api/purchase-entries` | Entrada de estoque |
+
+### Caixa / Vendas
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | `POST` | `/api/cash-sessions` | Abrir caixa |
-| `GET` | `/api/cash-sessions/open/{terminalId}` | Caixa aberto do terminal |
+| `GET` | `/api/cash-sessions/open/{terminalId}` | Caixa aberto |
 | `POST` | `/api/cash-sessions/{id}/close` | Fechar caixa |
-
-### 🛒 Vendas
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/api/sales` | Registrar venda (itens + pagamentos) |
-| `GET` | `/api/sales/{id}` | Consultar venda |
-| `GET` | `/api/sales?page=1&from=&to=` | Histórico paginado |
+| `POST` | `/api/sales` | Registrar venda |
+| `GET` | `/api/sales` | Histórico paginado |
+| `GET` | `/api/sales/{id}` | Detalhe |
 | `POST` | `/api/sales/{id}/cancel` | Cancelar (estorna estoque) |
 
-### 📊 Relatórios *(Semana 3)*
+### Relatórios / Dashboard
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/api/dashboard` | KPIs em 1 chamada |
-| `GET` | `/api/reports/sales-summary` | Resumo de vendas por período |
-| `GET` | `/api/reports/stock-alerts` | Produtos com estoque abaixo do mínimo |
-| `GET` | `/api/reports/cash-session-summary/{id}` | Comprovante de fechamento |
-| `GET` | `/api/reports/inventory-movements` | Histórico de movimentações |
+| `GET` | `/api/dashboard` | KPIs (vendas, estoque, caixas) |
+| `GET` | `/api/reports/sales-summary` | Resumo por período |
+| `GET` | `/api/reports/stock-alerts` | Produtos abaixo do mínimo |
+| `GET` | `/api/reports/top-products` | Produtos mais vendidos |
+| `GET` | `/api/reports/revenue-by-day` | Receita por dia |
+| `GET` | `/api/reports/inventory-movements` | Movimentações de estoque |
+| `GET` | `/api/reports/cash-session-summary/{id}` | Fechamento de caixa |
 
-### 🩺 Infra
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/health` | HealthCheck (DB status) |
-| `GET` | `/openapi/v1.json` | Spec OpenAPI |
+### Infra
+| Método | Rota |
+|--------|------|
+| `GET` | `/health` |
+| `GET` | `/openapi/v1.json` |
 
 ---
 
-## 📁 Estrutura do Projeto
+## 📁 Estrutura
 
 ```
-System-PVD/
-├── Pdv.Backend/
-│   ├── Domain/          # Entidades: Product, Sale, CashSession, etc.
-│   ├── Data/            # DbContext + Migrations + DatabaseSeeder
-│   ├── Services/        # Regras de negócio (SaleService, etc.)
-│   ├── Endpoints/       # Minimal API routes
-│   ├── Contracts/       # DTOs de request/response
-│   ├── Common/          # ServiceResult<T>, extensions
-│   └── Program.cs       # Composition root
-├── frontend/            # React 19 + TypeScript (Semana 1+)
-├── frontend-test/       # Protótipo HTML/JS de integração
-├── docs/
-│   └── roadmaps/        # Roadmaps legados (semana1.html, semana2.html)
-├── roadmap.html         # 🗺️ Roadmap interativo 8 semanas
-├── .gitignore           # .NET + Node + secrets
-└── README.md
+ARCH System/
+├── Archlab.Backend/             # ASP.NET Core 10 Minimal APIs
+│   ├── Domain/                  # Entidades de domínio (15)
+│   ├── Data/                    # DbContext · Migrations · Seeder · Factory
+│   ├── Services/                # Regras de negócio
+│   ├── Endpoints/               # Rotas Minimal API
+│   ├── Contracts/               # DTOs request/response
+│   └── Program.cs
+├── Archlab.Backend.Tests/       # xUnit + SQLite in-memory (65 testes)
+├── frontend/                    # React 19 + TypeScript + Vite
+│   └── src/
+│       ├── pages/               # 9 páginas (Dashboard, PDV, Catálogo, ...)
+│       ├── components/          # Sidebar
+│       ├── store/               # Zustand (auth, cart)
+│       ├── api/                 # Axios client + interceptors JWT
+│       └── types/               # Contratos TypeScript
+├── .github/workflows/ci.yml     # Build · Test · Docker build
+├── docker-compose.yml           # PostgreSQL 17 (produção)
+├── docker-compose.dev.yml       # Override para dev local (porta 5433)
+├── .env.example                 # Variáveis de ambiente necessárias
+└── ARCHlab.slnx                 # Solution
 ```
 
 ---
 
-## 🔒 Avisos de Segurança
+## 🔒 Segurança
 
-> **Estado atual:** A API não possui autenticação. Qualquer pessoa com acesso à rede pode usar todos os endpoints. **Não expor em produção antes de implementar JWT (Semana 1).**
+- JWT com refresh tokens rotativos (revogação por token)
+- Senhas com BCrypt (work factor 11)
+- Rate limiting por IP
+- CORS configurável por ambiente
+- Seeder recusa senha padrão `admin123` fora de Development
 
-> **Fiscal:** A emissão NFC-e é uma **simulação técnica** apenas. Para uso real no Brasil: integração com SAT/NFC-e, certificado digital A1/A3, regras tributárias, contingência e autorização da SEFAZ conforme estado e regime da empresa.
+> **Fiscal:** A emissão NFC-e é uma **simulação técnica**. Para uso real: certificado digital A1/A3, integração com SEFAZ, regras tributárias por estado/regime.
 
 ---
 
 <div align="center">
 
-**PDV System · Roadmap 8 semanas · Privado**<br>
-Kauã (Tech Lead) · Pedro (Database) · Kerlon (Frontend/UX)
+**ARCHlab · ARCH System · Solo project by Kauã ([@Kaua-KGzin](https://github.com/Kaua-KGzin))**
 
 </div>

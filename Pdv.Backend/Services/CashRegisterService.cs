@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Pdv.Backend.Contracts;
 using Pdv.Backend.Data;
@@ -83,6 +84,8 @@ public sealed class CashRegisterService(PdvDbContext db)
             return ServiceResult<CashSessionResponse>.Fail("Valor de abertura nao pode ser negativo.");
 
         var terminalId = Normalize(request.TerminalId);
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
         var hasOpenSession = await db.CashSessions.AnyAsync(
             session => session.TerminalId == terminalId && session.Status == CashSessionStatus.Open,
             cancellationToken);
@@ -99,6 +102,7 @@ public sealed class CashRegisterService(PdvDbContext db)
 
         db.CashSessions.Add(session);
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return ServiceResult<CashSessionResponse>.Ok(CashSessionResponse.From(session, session.OpeningAmount));
     }

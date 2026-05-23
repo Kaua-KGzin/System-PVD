@@ -1,0 +1,64 @@
+@Pdv.Backend_HostAddress = http://localhost:5235
+
+GET {{Pdv.Backend_HostAddress}}/health
+Accept: application/json
+
+###
+
+GET {{Pdv.Backend_HostAddress}}/api/products
+Accept: application/json
+
+###
+
+GET {{Pdv.Backend_HostAddress}}/api/products/barcode/7891000100103
+Accept: application/json
+
+###
+
+POST {{Pdv.Backend_HostAddress}}/api/cash-sessions
+Content-Type: application/json
+
+{
+  "terminalId": "PDV-01",
+  "operatorName": "Maria",
+  "openingAmount": 150.00
+}
+
+###
+
+# Depois de abrir o caixa, copie o id retornado para cashSessionId.
+POST {{Pdv.Backend_HostAddress}}/api/sales
+Content-Type: application/json
+
+{
+  "cashSessionId": "00000000-0000-0000-0000-000000000000",
+  "operatorName": "Maria",
+  "customerDocument": "12345678909",
+  "saleDiscountTotal": 0,
+  "issueFiscalDocument": true,
+  "items": [
+    {
+      "barcode": "7891000100103",
+      "quantity": 1,
+      "unitDiscount": 0
+    },
+    {
+      "barcode": "7894900011517",
+      "quantity": 2,
+      "unitDiscount": 0
+    }
+  ],
+  "payments": [
+    {
+      "method": "Cash",
+      "amount": 50.00
+    }
+  ]
+}
+
+###
+
+GET {{Pdv.Backend_HostAddress}}/api/cash-sessions/open/PDV-01
+Accept: application/json
+
+###

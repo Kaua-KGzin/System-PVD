@@ -16,11 +16,11 @@ public sealed class FiscalDocumentService(PdvDbContext db)
 
     public async Task<FiscalDocument> BuildForSaleAsync(Sale sale, CancellationToken cancellationToken)
     {
-        var nextNumber = await db.FiscalDocuments
-            .Select(document => (int?)document.Number)
-            .MaxAsync(cancellationToken) ?? 0;
-
-        nextNumber++;
+        // FiscalCounter is updated inside the caller's Serializable transaction,
+        // guaranteeing unique sequential numbers under concurrent requests.
+        var counter = await db.FiscalCounters.FirstAsync(cancellationToken);
+        counter.LastNumber++;
+        var nextNumber = counter.LastNumber;
 
         var accessKey = BuildAccessKey(sale.CreatedAt, nextNumber);
 
@@ -40,18 +40,29 @@ public sealed class FiscalDocumentService(PdvDbContext db)
         };
     }
 
-    public async Task<ServiceResult<FiscalDocumentResponse>> GetByAccessKeyAsync(string accessKey, CancellationToken cancellationToken)
+    public async Task<ServiceResult<FiscalDocumentSummaryResponse>> GetByAccessKeyAsync(string accessKey, CancellationToken cancellationToken)
     {
         var normalizedAccessKey = accessKey.Trim();
         var document = await db.FiscalDocuments.AsNoTracking()
             .FirstOrDefaultAsync(document => document.AccessKey == normalizedAccessKey, cancellationToken);
 
         return document is null
-            ? ServiceResult<FiscalDocumentResponse>.Fail("Documento fiscal nao encontrado.", StatusCodes.Status404NotFound)
-            : ServiceResult<FiscalDocumentResponse>.Ok(FiscalDocumentResponse.From(document));
+            ? ServiceResult<FiscalDocumentSummaryResponse>.Fail("Documento fiscal nao encontrado.", StatusCodes.Status404NotFound)
+            : ServiceResult<FiscalDocumentSummaryResponse>.Ok(FiscalDocumentSummaryResponse.From(document));
     }
 
-    public async Task<ServiceResult<FiscalDocumentResponse>> GetBySaleAsync(Guid saleId, CancellationToken cancellationToken)
+    public async Task<ServiceResult<FiscalDocumentSummaryResponse>> GetBySaleAsync(Guid saleId, CancellationToken cancellationToken)
+    {
+        var document = await db.FiscalDocuments.AsNoTracking()
+            .FirstOrDefaultAsync(document => document.SaleId == saleId, cancellationToken);
+
+        return document is null
+            ? ServiceResult<FiscalDocumentSummaryResponse>.Fail("Venda sem documento fiscal emitido.", StatusCodes.Status404NotFound)
+            : ServiceResult<FiscalDocumentSummaryResponse>.Ok(FiscalDocumentSummaryResponse.From(document));
+    }
+
+    // Admin/Manager only — returns the full XML payload.
+    public async Task<ServiceResult<FiscalDocumentResponse>> GetXmlBySaleAsync(Guid saleId, CancellationToken cancellationToken)
     {
         var document = await db.FiscalDocuments.AsNoTracking()
             .FirstOrDefaultAsync(document => document.SaleId == saleId, cancellationToken);

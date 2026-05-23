@@ -16,10 +16,15 @@ public static class ProductEndpoints
             ProductService service,
             string? search = null,
             bool includeInactive = false,
+            Guid? categoryId = null,
             int page = 1,
             int pageSize = 20,
             CancellationToken cancellationToken = default) =>
-            Results.Ok(await service.SearchAsync(search, includeInactive, page, pageSize, cancellationToken)))
+        {
+            var resolvedPage = page < 1 ? 1 : page;
+            var resolvedPageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
+            return Results.Ok(await service.SearchAsync(search, includeInactive, categoryId, resolvedPage, resolvedPageSize, cancellationToken));
+        })
             .WithName("ListProducts");
 
         group.MapGet("/{id:guid}", async (
