@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
+import { useSettingsStore } from '../store/settings'
 import type { CashSession } from '../types'
 
 const fmt = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 export default function CashPage() {
   const qc = useQueryClient()
-  const [terminalId] = useState('CAIXA-01')
+  const { terminalId, setTerminalId } = useSettingsStore()
   const [openAmount, setOpenAmount] = useState('')
   const [operatorName, setOperatorName] = useState('')
   const [closeAmount, setCloseAmount] = useState('')
@@ -50,6 +51,10 @@ export default function CashPage() {
       {!session ? (
         <div className="card card-md">
           <h2 className="card-title">Abrir caixa</h2>
+          <div className="form-group">
+            <label>Terminal</label>
+            <input value={terminalId} onChange={(e) => setTerminalId(e.target.value)} placeholder="Ex: CAIXA-01" />
+          </div>
           <div className="form-group">
             <label>Operador</label>
             <input value={operatorName} onChange={(e) => setOperatorName(e.target.value)} placeholder="Nome do operador" />

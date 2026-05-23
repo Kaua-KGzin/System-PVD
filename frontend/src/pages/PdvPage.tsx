@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react'
 import { api } from '../api/client'
 import { useCartStore } from '../store/cart'
+import { useSettingsStore } from '../store/settings'
 import type { CashSession, Product } from '../types'
 
 const fmt = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -10,6 +11,7 @@ const fmt = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', curren
 type PaymentMethod = 'Cash' | 'Debit' | 'Credit' | 'Pix'
 
 export default function PdvPage() {
+  const { terminalId } = useSettingsStore()
   const barcodeRef = useRef<HTMLInputElement>(null)
   const [barcode, setBarcode] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash')
@@ -20,8 +22,8 @@ export default function PdvPage() {
   const { items, cashSessionId, addItem, removeItem, updateQuantity, grossTotal, netTotal, saleDiscount, clear } = useCartStore()
 
   const { data: openSession } = useQuery<CashSession>({
-    queryKey: ['open-session'],
-    queryFn: () => api.get('/cash-sessions/open/CAIXA-01').then((r) => r.data),
+    queryKey: ['open-session', terminalId],
+    queryFn: () => api.get(`/cash-sessions/open/${terminalId}`).then((r) => r.data),
     retry: false,
   })
 
@@ -75,7 +77,7 @@ export default function PdvPage() {
       <div className="page">
         <h1 className="page-title">Frente de Caixa</h1>
         <div className="alert alert-warn">
-          Nenhum caixa aberto para CAIXA-01. Abra um caixa na aba <strong>Caixa</strong> antes de vender.
+          Nenhum caixa aberto para {terminalId}. Abra um caixa na aba <strong>Caixa</strong> antes de vender.
         </div>
       </div>
     )
