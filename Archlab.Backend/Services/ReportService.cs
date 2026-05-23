@@ -84,15 +84,16 @@ public sealed class ReportService(PdvDbContext db)
     private static async Task<SalesByHourEntry[]> GetByHourAsync(
         IQueryable<Sale> query, CancellationToken ct)
     {
+        // Hour extraction must be client-side because EF provider support varies.
+        // Only CreatedAt + NetTotal are fetched — minimal payload.
         var sales = await query
             .Select(s => new { s.CreatedAt, s.NetTotal })
             .ToArrayAsync(ct);
 
-        return sales
+        return [.. sales
             .GroupBy(s => s.CreatedAt.ToLocalTime().Hour)
             .Select(g => new SalesByHourEntry(g.Key, g.Count(), g.Sum(s => s.NetTotal)))
-            .OrderBy(e => e.Hour)
-            .ToArray();
+            .OrderBy(e => e.Hour)];
     }
 
     public async Task<StockAlertEntry[]> GetStockAlertsAsync(CancellationToken cancellationToken)
@@ -211,14 +212,10 @@ public sealed class ReportService(PdvDbContext db)
         int limit,
         CancellationToken cancellationToken)
     {
-        var rows = await db.SaleItems.AsNoTracking()
+        return await db.SaleItems.AsNoTracking()
             .Where(i => i.Sale!.Status == SaleStatus.Completed
                      && i.Sale.CreatedAt >= from
                      && i.Sale.CreatedAt <= to)
-            .Select(i => new { i.ProductId, i.Barcode, i.ProductName, i.Quantity, i.NetTotal, i.SaleId })
-            .ToArrayAsync(cancellationToken);
-
-        return rows
             .GroupBy(i => new { i.ProductId, i.Barcode, i.ProductName })
             .Select(g => new TopProductEntry(
                 g.Key.ProductId,
@@ -229,7 +226,7 @@ public sealed class ReportService(PdvDbContext db)
                 g.Sum(i => i.NetTotal)))
             .OrderByDescending(e => e.TotalRevenue)
             .Take(limit)
-            .ToArray();
+            .ToArrayAsync(cancellationToken);
     }
 
     public async Task<RevenueByDayEntry[]> GetRevenueByDayAsync(
@@ -237,6 +234,8 @@ public sealed class ReportService(PdvDbContext db)
         DateTimeOffset to,
         CancellationToken cancellationToken)
     {
+        // Grouping by date requires client-side evaluation because DateOnly conversion
+        // is not translatable to SQL on all providers — load only the needed columns.
         var sales = await db.Sales.AsNoTracking()
             .Where(s => s.Status == SaleStatus.Completed
                      && s.CreatedAt >= from
@@ -244,7 +243,7 @@ public sealed class ReportService(PdvDbContext db)
             .Select(s => new { s.CreatedAt, s.GrossTotal, s.ItemDiscountTotal, s.SaleDiscountTotal, s.NetTotal })
             .ToArrayAsync(cancellationToken);
 
-        return sales
+        return [.. sales
             .GroupBy(s => DateOnly.FromDateTime(s.CreatedAt.ToLocalTime().DateTime))
             .Select(g => new RevenueByDayEntry(
                 g.Key,
@@ -252,8 +251,7 @@ public sealed class ReportService(PdvDbContext db)
                 g.Sum(s => s.GrossTotal),
                 g.Sum(s => s.ItemDiscountTotal + s.SaleDiscountTotal),
                 g.Sum(s => s.NetTotal)))
-            .OrderBy(e => e.Date)
-            .ToArray();
+            .OrderBy(e => e.Date)];
     }
 
     public async Task<PagedResponse<InventoryMovementEntry>> GetInventoryMovementsAsync(

@@ -48,7 +48,8 @@ public static class SaleEndpoints
             SaleService service,
             CancellationToken cancellationToken) =>
             (await service.CancelAsync(id, request, cancellationToken)).ToHttpResult())
-            .WithName("CancelSale");
+            .WithName("CancelSale")
+            .RequireAuthorization("AdminOrManager");
 
         return app;
     }
