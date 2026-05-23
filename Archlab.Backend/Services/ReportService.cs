@@ -212,10 +212,17 @@ public sealed class ReportService(PdvDbContext db)
         int limit,
         CancellationToken cancellationToken)
     {
-        return await db.SaleItems.AsNoTracking()
+        // Server-side: filter by date and status (avoids full table scan).
+        // Client-side: grouping uses Distinct() for sale count, which EF cannot translate
+        // to COUNT(DISTINCT) reliably across all providers/versions.
+        var rows = await db.SaleItems.AsNoTracking()
             .Where(i => i.Sale!.Status == SaleStatus.Completed
                      && i.Sale.CreatedAt >= from
                      && i.Sale.CreatedAt <= to)
+            .Select(i => new { i.ProductId, i.Barcode, i.ProductName, i.Quantity, i.NetTotal, i.SaleId })
+            .ToArrayAsync(cancellationToken);
+
+        return [.. rows
             .GroupBy(i => new { i.ProductId, i.Barcode, i.ProductName })
             .Select(g => new TopProductEntry(
                 g.Key.ProductId,
@@ -225,8 +232,7 @@ public sealed class ReportService(PdvDbContext db)
                 g.Select(i => i.SaleId).Distinct().Count(),
                 g.Sum(i => i.NetTotal)))
             .OrderByDescending(e => e.TotalRevenue)
-            .Take(limit)
-            .ToArrayAsync(cancellationToken);
+            .Take(limit)];
     }
 
     public async Task<RevenueByDayEntry[]> GetRevenueByDayAsync(
