@@ -10,6 +10,8 @@ public sealed class Product
     public decimal UnitPrice { get; set; }
     public decimal StockQuantity { get; set; }
     public decimal MinStockQuantity { get; set; }
+    public Guid? CategoryId { get; set; }
+    public Category? Category { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

@@ -10,6 +10,7 @@ public sealed record CreateProductRequest(
     decimal UnitPrice,
     decimal StockQuantity,
     decimal MinStockQuantity,
+    Guid? CategoryId = null,
     bool IsActive = true);
 
 public sealed record UpdateProductRequest(
@@ -19,6 +20,7 @@ public sealed record UpdateProductRequest(
     string UnitOfMeasure,
     decimal UnitPrice,
     decimal MinStockQuantity,
+    Guid? CategoryId,
     bool IsActive);
 
 public sealed record AdjustStockRequest(decimal QuantityDelta, string? Reason);
@@ -32,6 +34,8 @@ public sealed record ProductResponse(
     decimal UnitPrice,
     decimal StockQuantity,
     decimal MinStockQuantity,
+    Guid? CategoryId,
+    string? CategoryName,
     bool IsActive,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt)
@@ -46,6 +50,8 @@ public sealed record ProductResponse(
             product.UnitPrice,
             product.StockQuantity,
             product.MinStockQuantity,
+            product.CategoryId,
+            product.Category?.Name,
             product.IsActive,
             product.CreatedAt,
             product.UpdatedAt);

@@ -15,7 +15,7 @@ namespace Pdv.Backend.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.2");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
 
             modelBuilder.Entity("Pdv.Backend.Domain.CashSession", b =>
                 {
@@ -69,6 +69,74 @@ namespace Pdv.Backend.Migrations
                     b.HasIndex("TerminalId", "Status");
 
                     b.ToTable("CashSessions");
+                });
+
+            modelBuilder.Entity("Pdv.Backend.Domain.Category", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(240)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("Pdv.Backend.Domain.Customer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Document")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Document");
+
+                    b.ToTable("Customers");
                 });
 
             modelBuilder.Entity("Pdv.Backend.Domain.FiscalDocument", b =>
@@ -171,6 +239,9 @@ namespace Pdv.Backend.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER");
 
@@ -211,10 +282,115 @@ namespace Pdv.Backend.Migrations
                     b.HasIndex("Barcode")
                         .IsUnique();
 
+                    b.HasIndex("CategoryId");
+
                     b.HasIndex("Sku")
                         .IsUnique();
 
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("Pdv.Backend.Domain.PurchaseEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ReceivedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("PurchaseEntries");
+                });
+
+            modelBuilder.Entity("Pdv.Backend.Domain.PurchaseEntryItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PurchaseEntryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("PurchaseEntryId");
+
+                    b.ToTable("PurchaseEntryItems");
+                });
+
+            modelBuilder.Entity("Pdv.Backend.Domain.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("ExpiresAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("Pdv.Backend.Domain.Sale", b =>
@@ -242,6 +418,9 @@ namespace Pdv.Backend.Migrations
 
                     b.Property<string>("CustomerDocument")
                         .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("CustomerId")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("GrossTotal")
@@ -288,8 +467,12 @@ namespace Pdv.Backend.Migrations
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("CustomerId");
+
                     b.HasIndex("Number")
                         .IsUnique();
+
+                    b.HasIndex("Status", "CashSessionId");
 
                     b.ToTable("Sales");
                 });
@@ -397,6 +580,50 @@ namespace Pdv.Backend.Migrations
                     b.ToTable("SalePayments");
                 });
 
+            modelBuilder.Entity("Pdv.Backend.Domain.Supplier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cnpj")
+                        .HasMaxLength(18)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Cnpj")
+                        .IsUnique();
+
+                    b.ToTable("Suppliers");
+                });
+
             modelBuilder.Entity("Pdv.Backend.Domain.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -453,6 +680,57 @@ namespace Pdv.Backend.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Pdv.Backend.Domain.Product", b =>
+                {
+                    b.HasOne("Pdv.Backend.Domain.Category", "Category")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("Pdv.Backend.Domain.PurchaseEntry", b =>
+                {
+                    b.HasOne("Pdv.Backend.Domain.Supplier", "Supplier")
+                        .WithMany("PurchaseEntries")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("Pdv.Backend.Domain.PurchaseEntryItem", b =>
+                {
+                    b.HasOne("Pdv.Backend.Domain.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Pdv.Backend.Domain.PurchaseEntry", "PurchaseEntry")
+                        .WithMany("Items")
+                        .HasForeignKey("PurchaseEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("PurchaseEntry");
+                });
+
+            modelBuilder.Entity("Pdv.Backend.Domain.RefreshToken", b =>
+                {
+                    b.HasOne("Pdv.Backend.Domain.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Pdv.Backend.Domain.Sale", b =>
                 {
                     b.HasOne("Pdv.Backend.Domain.CashSession", "CashSession")
@@ -461,7 +739,14 @@ namespace Pdv.Backend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Pdv.Backend.Domain.Customer", "Customer")
+                        .WithMany("Sales")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("CashSession");
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("Pdv.Backend.Domain.SaleItem", b =>
@@ -499,9 +784,24 @@ namespace Pdv.Backend.Migrations
                     b.Navigation("Sales");
                 });
 
+            modelBuilder.Entity("Pdv.Backend.Domain.Category", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("Pdv.Backend.Domain.Customer", b =>
+                {
+                    b.Navigation("Sales");
+                });
+
             modelBuilder.Entity("Pdv.Backend.Domain.Product", b =>
                 {
                     b.Navigation("InventoryMovements");
+                });
+
+            modelBuilder.Entity("Pdv.Backend.Domain.PurchaseEntry", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Pdv.Backend.Domain.Sale", b =>
@@ -511,6 +811,11 @@ namespace Pdv.Backend.Migrations
                     b.Navigation("Items");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("Pdv.Backend.Domain.Supplier", b =>
+                {
+                    b.Navigation("PurchaseEntries");
                 });
 #pragma warning restore 612, 618
         }

@@ -6,10 +6,11 @@ public sealed record CreateSaleRequest(
     Guid CashSessionId,
     string OperatorName,
     string? CustomerDocument,
+    Guid? CustomerId,
     decimal SaleDiscountTotal,
-    bool IssueFiscalDocument,
     IReadOnlyList<CreateSaleItemRequest> Items,
-    IReadOnlyList<CreatePaymentRequest> Payments);
+    IReadOnlyList<CreatePaymentRequest> Payments,
+    bool IssueFiscalDocument = false);
 
 public sealed record CreateSaleItemRequest(
     string Barcode,
@@ -30,6 +31,7 @@ public sealed record SaleResponse(
     string TerminalId,
     string OperatorName,
     string? CustomerDocument,
+    Guid? CustomerId,
     DateTimeOffset CreatedAt,
     DateTimeOffset? CancelledAt,
     string? CancellationReason,
@@ -52,6 +54,7 @@ public sealed record SaleResponse(
             sale.TerminalId,
             sale.OperatorName,
             sale.CustomerDocument,
+            sale.CustomerId,
             sale.CreatedAt,
             sale.CancelledAt,
             sale.CancellationReason,

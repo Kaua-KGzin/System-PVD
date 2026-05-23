@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: archlab
+      POSTGRES_USER: archlab
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U archlab -d archlab"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./Archlab.Backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      DatabaseProvider: PostgreSQL
+      ConnectionStrings__DefaultConnection: "Host=db;Database=archlab;Username=archlab;Password=${POSTGRES_PASSWORD}"
+      Jwt__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      Jwt__Issuer: archlab-api
+      Jwt__Audience: archlab-client
+      Jwt__ExpirationHours: "8"
+      SeedAdmin__Username: ${SEED_ADMIN_USERNAME:?SEED_ADMIN_USERNAME is required}
+      SeedAdmin__Password: ${SEED_ADMIN_PASSWORD:?SEED_ADMIN_PASSWORD is required}
+      SeedAdmin__Role: Admin
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
