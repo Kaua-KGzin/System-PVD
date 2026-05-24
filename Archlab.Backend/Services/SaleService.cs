@@ -130,7 +130,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             if (db.Database.IsNpgsql())
             {
                 var rowsUpdated = await db.Database.ExecuteSqlInterpolatedAsync(
-                    $"UPDATE products SET stock_quantity = stock_quantity - {requestedItem.Quantity}, updated_at = {now} WHERE id = {product.Id} AND is_active = true AND stock_quantity >= {requestedItem.Quantity}",
+                    $@"UPDATE ""Products"" SET ""StockQuantity"" = ""StockQuantity"" - {requestedItem.Quantity}, ""UpdatedAt"" = {now} WHERE ""Id"" = {product.Id} AND ""IsActive"" = true AND ""StockQuantity"" >= {requestedItem.Quantity}",
                     cancellationToken);
 
                 if (rowsUpdated == 0)
@@ -243,7 +243,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             if (db.Database.IsNpgsql())
             {
                 await db.Database.ExecuteSqlInterpolatedAsync(
-                    $"UPDATE products SET stock_quantity = stock_quantity + {item.Quantity}, updated_at = {now} WHERE id = {item.ProductId}",
+                    $@"UPDATE ""Products"" SET ""StockQuantity"" = ""StockQuantity"" + {item.Quantity}, ""UpdatedAt"" = {now} WHERE ""Id"" = {item.ProductId}",
                     cancellationToken);
             }
             else
@@ -307,7 +307,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             // EF Core wraps SqlQuery<T> in "SELECT t.* FROM (...) AS t" which breaks RETURNING in SQLite.
             // In PostgreSQL this works correctly.
             var result = await db.Database
-                .SqlQuery<int>($"UPDATE sale_counters SET last_number = last_number + 1 WHERE id = 1 RETURNING last_number")
+                .SqlQuery<int>($@"UPDATE ""SaleCounters"" SET ""LastNumber"" = ""LastNumber"" + 1 WHERE ""Id"" = 1 RETURNING ""LastNumber""")
                 .ToListAsync(cancellationToken);
             return result.Single();
         }

@@ -65,7 +65,7 @@ public sealed class FiscalDocumentService(PdvDbContext db)
         if (db.Database.IsNpgsql())
         {
             var result = await db.Database
-                .SqlQuery<int>($"UPDATE fiscal_counters SET last_number = last_number + 1 WHERE id = 1 RETURNING last_number")
+                .SqlQuery<int>($@"UPDATE ""FiscalCounters"" SET ""LastNumber"" = ""LastNumber"" + 1 WHERE ""Id"" = 1 RETURNING ""LastNumber""")
                 .ToListAsync(cancellationToken);
             return result.Single();
         }
