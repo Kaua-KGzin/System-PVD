@@ -9,6 +9,22 @@ public sealed class UserService(PdvDbContext db)
 {
     private static readonly string[] ValidRoles = ["Admin", "Operator", "Manager"];
 
+    private static string? ValidatePassword(string? password)
+    {
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 12)
+            return "Senha precisa ter no minimo 12 caracteres.";
+
+        var hasUpper = password.Any(char.IsUpper);
+        var hasLower = password.Any(char.IsLower);
+        var hasDigit = password.Any(char.IsDigit);
+        var hasSpecial = password.Any(c => !char.IsLetterOrDigit(c));
+
+        if (!hasUpper || !hasLower || !hasDigit || !hasSpecial)
+            return "Senha precisa conter letras maiusculas, minusculas, numeros e caracteres especiais.";
+
+        return null;
+    }
+
     public async Task<PagedResponse<UserResponse>> ListAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
         var query = db.Users.AsNoTracking();
@@ -29,8 +45,9 @@ public sealed class UserService(PdvDbContext db)
         if (string.IsNullOrWhiteSpace(request.Username))
             return ServiceResult<UserResponse>.Fail("Username e obrigatorio.");
 
-        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
-            return ServiceResult<UserResponse>.Fail("Senha precisa ter no minimo 8 caracteres.");
+        var passwordError = ValidatePassword(request.Password);
+        if (passwordError is not null)
+            return ServiceResult<UserResponse>.Fail(passwordError);
 
         var role = request.Role?.Trim();
         if (!ValidRoles.Contains(role))
@@ -82,8 +99,9 @@ public sealed class UserService(PdvDbContext db)
 
     public async Task<ServiceResult<UserResponse>> ChangePasswordAsync(Guid id, ChangePasswordRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
-            return ServiceResult<UserResponse>.Fail("Nova senha precisa ter no minimo 8 caracteres.");
+        var passwordError = ValidatePassword(request.NewPassword);
+        if (passwordError is not null)
+            return ServiceResult<UserResponse>.Fail(passwordError);
 
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
         if (user is null)

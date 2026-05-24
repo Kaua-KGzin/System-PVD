@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Archlab.Backend.Contracts;
@@ -63,7 +64,7 @@ public sealed class FiscalDocumentService(PdvDbContext db)
 
     private static string BuildAccessKey(DateTimeOffset issuedAt, int number)
     {
-        var randomCode = Random.Shared.Next(0, 99_999_999).ToString("D8", CultureInfo.InvariantCulture);
+        var randomCode = RandomNumberGenerator.GetInt32(0, 99_999_999).ToString("D8", CultureInfo.InvariantCulture);
         var body = string.Concat(
             StateCode,
             issuedAt.ToString("yyMM", CultureInfo.InvariantCulture),
