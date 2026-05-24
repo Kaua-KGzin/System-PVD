@@ -32,7 +32,7 @@ public sealed class ReportServiceTests : IDisposable
 
     private async Task SeedAsync()
     {
-        _db.SaleCounters.Add(new SaleCounter { Id = 1, LastNumber = 0 });
+        // SaleCounter and FiscalCounter are already seeded by DbContextFactory.CreateWithConnection()
         _db.Products.Add(new Product
         {
             Barcode = "7891000100103",

@@ -139,6 +139,20 @@ namespace Pdv.Backend.Migrations
                     b.ToTable("Customers");
                 });
 
+            modelBuilder.Entity("Pdv.Backend.Domain.FiscalCounter", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("LastNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FiscalCounters");
+                });
+
             modelBuilder.Entity("Pdv.Backend.Domain.FiscalDocument", b =>
                 {
                     b.Property<Guid>("Id")

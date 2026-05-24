@@ -7,6 +7,10 @@ namespace Archlab.Backend.Services;
 
 public sealed class ReportService(PdvDbContext db)
 {
+    // Maximum rows fetched client-side for SQLite (test environment only).
+    // Production (PostgreSQL) uses server-side aggregation — no limit needed.
+    private const int SqliteSafetyLimit = 50_000;
+
     public async Task<SalesSummaryResponse> GetSalesSummaryAsync(
         DateTimeOffset from,
         DateTimeOffset to,
@@ -27,16 +31,14 @@ public sealed class ReportService(PdvDbContext db)
         await Task.WhenAll(totalsTask, byMethodTask, byHourTask);
 
         var (totalSales, totalRevenue, totalDiscounts, netRevenue) = totalsTask.Result;
-        var byMethod = byMethodTask.Result;
-        var byHour = byHourTask.Result;
 
         return new SalesSummaryResponse(
             totalSales,
             totalRevenue,
             totalDiscounts,
             netRevenue,
-            byMethod,
-            byHour);
+            byMethodTask.Result,
+            byHourTask.Result);
     }
 
     private static async Task<(int Count, decimal GrossTotal, decimal Discounts, decimal NetTotal)>
@@ -81,17 +83,28 @@ public sealed class ReportService(PdvDbContext db)
             .ToArrayAsync(ct);
     }
 
-    private static async Task<SalesByHourEntry[]> GetByHourAsync(
-        IQueryable<Sale> query, CancellationToken ct)
+    private async Task<SalesByHourEntry[]> GetByHourAsync(IQueryable<Sale> query, CancellationToken ct)
     {
-        // Hour extraction must be client-side because EF provider support varies.
-        // Only CreatedAt + NetTotal are fetched — minimal payload.
+        if (db.Database.IsNpgsql())
+        {
+            // PostgreSQL: full server-side aggregation — no data loaded into memory.
+            // EF Core + Npgsql translates DateTimeOffset.Hour to EXTRACT(HOUR FROM ...).
+            return await query
+                .GroupBy(s => s.CreatedAt.Hour)
+                .Select(g => new { Hour = g.Key, Count = g.Count(), Revenue = g.Sum(s => s.NetTotal) })
+                .OrderBy(g => g.Hour)
+                .Select(g => new SalesByHourEntry(g.Hour, g.Count, g.Revenue))
+                .ToArrayAsync(ct);
+        }
+
+        // SQLite (test environment): client-side with safety limit
         var sales = await query
             .Select(s => new { s.CreatedAt, s.NetTotal })
+            .Take(SqliteSafetyLimit)
             .ToArrayAsync(ct);
 
         return [.. sales
-            .GroupBy(s => s.CreatedAt.ToLocalTime().Hour)
+            .GroupBy(s => s.CreatedAt.UtcDateTime.Hour)
             .Select(g => new SalesByHourEntry(g.Key, g.Count(), g.Sum(s => s.NetTotal)))
             .OrderBy(e => e.Hour)];
     }
@@ -124,8 +137,6 @@ public sealed class ReportService(PdvDbContext db)
         var salesSummaryTask = GetSessionSalesSummaryAsync(sessionId, cancellationToken);
         var paymentBreakdownTask = GetSessionPaymentBreakdownAsync(sessionId, cancellationToken);
         await Task.WhenAll(salesSummaryTask, paymentBreakdownTask);
-        var salesSummary = salesSummaryTask.Result;
-        var paymentBreakdown = paymentBreakdownTask.Result;
 
         var expectedClosing = await GetExpectedCashClosingAsync(session.Id, session.OpeningAmount, cancellationToken);
 
@@ -142,8 +153,8 @@ public sealed class ReportService(PdvDbContext db)
                 session.OpenedAt,
                 session.ClosedAt,
                 session.Status.ToString()),
-            salesSummary,
-            paymentBreakdown,
+            salesSummaryTask.Result,
+            paymentBreakdownTask.Result,
             expectedClosing,
             session.ClosingAmount,
             difference);
@@ -151,10 +162,7 @@ public sealed class ReportService(PdvDbContext db)
         return ServiceResult<CashSessionSummaryResponse>.Ok(response);
     }
 
-    private async Task<decimal> GetExpectedCashClosingAsync(
-        Guid sessionId,
-        decimal openingAmount,
-        CancellationToken ct)
+    private async Task<decimal> GetExpectedCashClosingAsync(Guid sessionId, decimal openingAmount, CancellationToken ct)
     {
         var cashReceived = await db.SalePayments.AsNoTracking()
             .Where(p => p.Method == PaymentMethod.Cash &&
@@ -169,8 +177,7 @@ public sealed class ReportService(PdvDbContext db)
         return openingAmount + cashReceived - changePaid;
     }
 
-    private async Task<CashSessionSalesSummary> GetSessionSalesSummaryAsync(
-        Guid sessionId, CancellationToken ct)
+    private async Task<CashSessionSalesSummary> GetSessionSalesSummaryAsync(Guid sessionId, CancellationToken ct)
     {
         var result = await db.Sales.AsNoTracking()
             .Where(s => s.CashSessionId == sessionId)
@@ -196,8 +203,7 @@ public sealed class ReportService(PdvDbContext db)
                 result.NetRevenue);
     }
 
-    private async Task<PaymentBreakdown[]> GetSessionPaymentBreakdownAsync(
-        Guid sessionId, CancellationToken ct)
+    private async Task<PaymentBreakdown[]> GetSessionPaymentBreakdownAsync(Guid sessionId, CancellationToken ct)
     {
         return await db.SalePayments.AsNoTracking()
             .Where(p => p.Sale!.CashSessionId == sessionId && p.Sale.Status == SaleStatus.Completed)
@@ -212,14 +218,36 @@ public sealed class ReportService(PdvDbContext db)
         int limit,
         CancellationToken cancellationToken)
     {
-        // Server-side: filter by date and status (avoids full table scan).
-        // Client-side: grouping uses Distinct() for sale count, which EF cannot translate
-        // to COUNT(DISTINCT) reliably across all providers/versions.
+        limit = Math.Clamp(limit, 1, 100);
+
+        if (db.Database.IsNpgsql())
+        {
+            // PostgreSQL: full server-side aggregation.
+            // COUNT(DISTINCT sale_id) is translatable in EF Core 8+ with Npgsql.
+            return await db.SaleItems.AsNoTracking()
+                .Where(i => i.Sale!.Status == SaleStatus.Completed
+                         && i.Sale.CreatedAt >= from
+                         && i.Sale.CreatedAt <= to)
+                .GroupBy(i => new { i.ProductId, i.Barcode, i.ProductName })
+                .Select(g => new TopProductEntry(
+                    g.Key.ProductId,
+                    g.Key.Barcode,
+                    g.Key.ProductName,
+                    g.Sum(i => i.Quantity),
+                    g.Select(i => i.SaleId).Distinct().Count(),
+                    g.Sum(i => i.NetTotal)))
+                .OrderByDescending(e => e.TotalRevenue)
+                .Take(limit)
+                .ToArrayAsync(cancellationToken);
+        }
+
+        // SQLite (test environment): client-side with safety limit
         var rows = await db.SaleItems.AsNoTracking()
             .Where(i => i.Sale!.Status == SaleStatus.Completed
                      && i.Sale.CreatedAt >= from
                      && i.Sale.CreatedAt <= to)
             .Select(i => new { i.ProductId, i.Barcode, i.ProductName, i.Quantity, i.NetTotal, i.SaleId })
+            .Take(SqliteSafetyLimit)
             .ToArrayAsync(cancellationToken);
 
         return [.. rows
@@ -240,17 +268,44 @@ public sealed class ReportService(PdvDbContext db)
         DateTimeOffset to,
         CancellationToken cancellationToken)
     {
-        // Grouping by date requires client-side evaluation because DateOnly conversion
-        // is not translatable to SQL on all providers — load only the needed columns.
+        if (db.Database.IsNpgsql())
+        {
+            // PostgreSQL: cast to date server-side (UTC).
+            // Timezone handling should be done at the presentation layer if needed.
+            return await db.Sales.AsNoTracking()
+                .Where(s => s.Status == SaleStatus.Completed
+                         && s.CreatedAt >= from
+                         && s.CreatedAt <= to)
+                .GroupBy(s => s.CreatedAt.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    Count = g.Count(),
+                    Gross = g.Sum(s => s.GrossTotal),
+                    Discounts = g.Sum(s => s.ItemDiscountTotal + s.SaleDiscountTotal),
+                    Net = g.Sum(s => s.NetTotal)
+                })
+                .OrderBy(g => g.Date)
+                .Select(g => new RevenueByDayEntry(
+                    DateOnly.FromDateTime(g.Date),
+                    g.Count,
+                    g.Gross,
+                    g.Discounts,
+                    g.Net))
+                .ToArrayAsync(cancellationToken);
+        }
+
+        // SQLite (test environment)
         var sales = await db.Sales.AsNoTracking()
             .Where(s => s.Status == SaleStatus.Completed
                      && s.CreatedAt >= from
                      && s.CreatedAt <= to)
             .Select(s => new { s.CreatedAt, s.GrossTotal, s.ItemDiscountTotal, s.SaleDiscountTotal, s.NetTotal })
+            .Take(SqliteSafetyLimit)
             .ToArrayAsync(cancellationToken);
 
         return [.. sales
-            .GroupBy(s => DateOnly.FromDateTime(s.CreatedAt.ToLocalTime().DateTime))
+            .GroupBy(s => DateOnly.FromDateTime(s.CreatedAt.UtcDateTime))
             .Select(g => new RevenueByDayEntry(
                 g.Key,
                 g.Count(),
@@ -268,6 +323,9 @@ public sealed class ReportService(PdvDbContext db)
         int pageSize,
         CancellationToken cancellationToken)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        page = Math.Max(1, page);
+
         var query = db.InventoryMovements.AsNoTracking()
             .Include(m => m.Product)
             .AsQueryable();

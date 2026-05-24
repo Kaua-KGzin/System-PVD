@@ -21,7 +21,9 @@ public static class AuthEndpoints
             return result.Succeeded
                 ? Results.Ok(result.Value)
                 : Results.Problem(result.Error!.Message, statusCode: result.Error.StatusCode);
-        }).WithName("Login");
+        })
+        .WithName("Login")
+        .RequireRateLimiting("login"); // 5 tentativas/min por IP — mitiga brute-force
 
         group.MapPost("/refresh", async (
             RefreshTokenRequest request,

@@ -16,6 +16,9 @@ public sealed class ProductService(PdvDbContext db)
         int pageSize,
         CancellationToken cancellationToken)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        page = Math.Max(1, page);
+
         IQueryable<Product> query = db.Products.AsNoTracking().Include(p => p.Category);
 
         if (!includeInactive)

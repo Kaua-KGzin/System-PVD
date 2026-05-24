@@ -14,6 +14,9 @@ public sealed class CustomerService(PdvDbContext db)
         int pageSize,
         CancellationToken cancellationToken)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        page = Math.Max(1, page);
+
         var query = db.Customers.AsNoTracking();
 
         if (!includeInactive)

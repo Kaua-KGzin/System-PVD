@@ -11,6 +11,9 @@ public sealed class PurchaseEntryService(PdvDbContext db)
     public async Task<PagedResponse<PurchaseEntryResponse>> ListAsync(
         Guid? supplierId, int page, int pageSize, CancellationToken ct)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        page = Math.Max(1, page);
+
         var query = db.PurchaseEntries.AsNoTracking()
             .Include(e => e.Supplier)
             .Include(e => e.Items).ThenInclude(i => i.Product)

@@ -1,7 +1,9 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Archlab.Backend.Data;
+using Archlab.Backend.Services.Settings;
 
 namespace Archlab.Backend.Tests.Helpers;
 
@@ -23,22 +25,33 @@ public static class DbContextFactory
 
         var db = new PdvDbContext(options);
         db.Database.EnsureCreated();
+
+        // Seed the atomic counter rows required by SaleService and FiscalDocumentService
+        if (!db.SaleCounters.Any())
+            db.SaleCounters.Add(new Archlab.Backend.Domain.SaleCounter { Id = 1, LastNumber = 0 });
+
+        if (!db.FiscalCounters.Any())
+            db.FiscalCounters.Add(new Archlab.Backend.Domain.FiscalCounter { Id = 1, LastNumber = 0 });
+
+        db.SaveChanges();
+
         return (db, connection);
     }
 
-    public static IConfiguration BuildConfig(
-        string jwtKey = "test-secret-key-minimum-32-bytes-long-ok",
+    public static IOptions<JwtSettings> BuildJwtOptions(
+        string secretKey = "test-secret-key-minimum-32-bytes-long-for-hmac-sha256",
         string issuer = "pdv-test",
-        string audience = "pdv-test-client")
+        string audience = "pdv-test-client",
+        int expirationHours = 8)
     {
-        return new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Jwt:SecretKey"] = jwtKey,
-                ["Jwt:Issuer"] = issuer,
-                ["Jwt:Audience"] = audience,
-                ["Jwt:ExpirationHours"] = "8"
-            })
-            .Build();
+        return Options.Create(new JwtSettings
+        {
+            SecretKey = secretKey,
+            Issuer = issuer,
+            Audience = audience,
+            ExpirationHours = expirationHours
+        });
     }
+
+    public static NullLogger<T> NullLogger<T>() => new();
 }

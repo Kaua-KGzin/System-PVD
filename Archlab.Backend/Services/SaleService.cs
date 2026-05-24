@@ -16,6 +16,9 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         int pageSize,
         CancellationToken cancellationToken)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        page = Math.Max(1, page);
+
         var query = db.Sales.AsNoTracking()
             .Include(sale => sale.Items)
             .Include(sale => sale.Payments)
@@ -59,8 +62,15 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         if (validation is not null)
             return ServiceResult<SaleResponse>.Fail(validation);
 
-        // Serializable starts a write transaction early so stock and sale numbering are checked against a stable view.
-        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        // Step 1: Get sale number atomically outside the main transaction.
+        // The UPDATE is inherently atomic at the database level regardless of isolation.
+        // Gaps in numbering are acceptable (e.g. if the sale fails after this point).
+        // This avoids holding a lock on the counter row for the entire sale transaction.
+        var saleNumber = await GetNextSaleNumberAsync(cancellationToken);
+
+        // Step 2: Use ReadCommitted for the rest. Stock integrity is enforced by atomic
+        // SQL UPDATE...WHERE stock >= qty below, not by isolation level.
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
 
         var cashSession = await db.CashSessions.FirstOrDefaultAsync(
             session => session.Id == request.CashSessionId, cancellationToken);
@@ -71,24 +81,22 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         if (cashSession.Status != CashSessionStatus.Open)
             return ServiceResult<SaleResponse>.Fail("A venda so pode ser registrada em um caixa aberto.", StatusCodes.Status409Conflict);
 
+        // Load product details (no tracking — stock update is done via raw SQL below)
         var barcodes = request.Items.Select(item => item.Barcode.Trim()).Distinct().ToArray();
-        var products = await db.Products
+        var products = await db.Products.AsNoTracking()
             .Where(product => barcodes.Contains(product.Barcode))
             .ToDictionaryAsync(product => product.Barcode, cancellationToken);
 
-        var counter = await db.SaleCounters.FirstAsync(cancellationToken);
-        counter.LastNumber++;
-
         if (request.CustomerId.HasValue)
         {
-            var customer = await db.Customers.FindAsync([request.CustomerId.Value], cancellationToken);
-            if (customer is null)
+            var customerExists = await db.Customers.AnyAsync(c => c.Id == request.CustomerId.Value, cancellationToken);
+            if (!customerExists)
                 return ServiceResult<SaleResponse>.Fail("Cliente nao encontrado.", StatusCodes.Status404NotFound);
         }
 
         var sale = new Sale
         {
-            Number = counter.LastNumber,
+            Number = saleNumber,
             CashSessionId = cashSession.Id,
             TerminalId = cashSession.TerminalId,
             OperatorName = request.OperatorName.Trim(),
@@ -96,6 +104,8 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             CustomerId = request.CustomerId,
             SaleDiscountTotal = request.SaleDiscountTotal
         };
+
+        var now = DateTimeOffset.UtcNow;
 
         foreach (var requestedItem in request.Items)
         {
@@ -106,15 +116,34 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             if (!product.IsActive)
                 return ServiceResult<SaleResponse>.Fail($"Produto {product.Name} esta inativo.");
 
-            if (product.StockQuantity < requestedItem.Quantity)
-                return ServiceResult<SaleResponse>.Fail($"Estoque insuficiente para {product.Name}. Disponivel: {product.StockQuantity}.");
-
             var grossTotal = RoundMoney(product.UnitPrice * requestedItem.Quantity);
             var discountTotal = RoundMoney(requestedItem.UnitDiscount * requestedItem.Quantity);
             var netTotal = RoundMoney(grossTotal - discountTotal);
 
             if (netTotal < 0)
                 return ServiceResult<SaleResponse>.Fail($"Desconto maior que o valor do item {product.Name}.");
+
+            // Atomic stock check-and-decrement.
+            // PostgreSQL: raw SQL UPDATE WHERE stock >= qty holds a row-level lock and acts as
+            // an optimistic concurrency guard under ReadCommitted — returns 0 rows if stock < qty.
+            // SQLite (tests): single-threaded in-memory, so a tracked read-check-update is safe.
+            if (db.Database.IsNpgsql())
+            {
+                var rowsUpdated = await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE products SET stock_quantity = stock_quantity - {requestedItem.Quantity}, updated_at = {now} WHERE id = {product.Id} AND is_active = true AND stock_quantity >= {requestedItem.Quantity}",
+                    cancellationToken);
+
+                if (rowsUpdated == 0)
+                    return ServiceResult<SaleResponse>.Fail($"Estoque insuficiente para {product.Name}.");
+            }
+            else
+            {
+                var trackedProduct = await db.Products.FindAsync([product.Id], cancellationToken);
+                if (trackedProduct!.StockQuantity < requestedItem.Quantity)
+                    return ServiceResult<SaleResponse>.Fail($"Estoque insuficiente para {product.Name}.");
+                trackedProduct.StockQuantity -= requestedItem.Quantity;
+                trackedProduct.UpdatedAt = now;
+            }
 
             sale.Items.Add(new SaleItem
             {
@@ -129,9 +158,6 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
                 DiscountTotal = discountTotal,
                 NetTotal = netTotal
             });
-
-            product.StockQuantity -= requestedItem.Quantity;
-            product.UpdatedAt = DateTimeOffset.UtcNow;
 
             db.InventoryMovements.Add(new InventoryMovement
             {
@@ -184,7 +210,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         await transaction.CommitAsync(cancellationToken);
 
         logger.LogInformation(
-            "Sale created: Id={SaleId} Number={Number} Terminal={Terminal} Operator={Operator} Total={NetTotal:F2}",
+            "Venda criada: Id={SaleId} Numero={Number} Terminal={Terminal} Operador={Operator} Total={NetTotal:F2}",
             sale.Id, sale.Number, sale.TerminalId, sale.OperatorName, sale.NetTotal);
 
         var createdSale = await LoadSaleAsync(sale.Id, asTracking: false, cancellationToken);
@@ -203,27 +229,36 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         if (sale.Status == SaleStatus.Cancelled)
             return ServiceResult<SaleResponse>.Fail("Venda ja cancelada.", StatusCodes.Status409Conflict);
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
 
         sale.Status = SaleStatus.Cancelled;
         sale.CancelledAt = DateTimeOffset.UtcNow;
         sale.CancellationReason = request.Reason.Trim();
 
-        // Load all products in one query to avoid N+1
-        var productIds = sale.Items.Select(item => item.ProductId).ToHashSet();
-        var products = await db.Products
-            .Where(p => productIds.Contains(p.Id))
-            .ToDictionaryAsync(p => p.Id, cancellationToken);
+        var now = DateTimeOffset.UtcNow;
 
+        // Restore stock atomically per product
         foreach (var item in sale.Items)
         {
-            var product = products[item.ProductId];
-            product.StockQuantity += item.Quantity;
-            product.UpdatedAt = DateTimeOffset.UtcNow;
+            if (db.Database.IsNpgsql())
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE products SET stock_quantity = stock_quantity + {item.Quantity}, updated_at = {now} WHERE id = {item.ProductId}",
+                    cancellationToken);
+            }
+            else
+            {
+                var trackedProduct = await db.Products.FindAsync([item.ProductId], cancellationToken);
+                if (trackedProduct is not null)
+                {
+                    trackedProduct.StockQuantity += item.Quantity;
+                    trackedProduct.UpdatedAt = now;
+                }
+            }
 
             db.InventoryMovements.Add(new InventoryMovement
             {
-                ProductId = product.Id,
+                ProductId = item.ProductId,
                 SaleId = sale.Id,
                 QuantityDelta = item.Quantity,
                 Type = InventoryMovementType.SaleCancellation,
@@ -241,7 +276,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         await transaction.CommitAsync(cancellationToken);
 
         logger.LogInformation(
-            "Sale cancelled: Id={SaleId} Number={Number} Reason={Reason}",
+            "Venda cancelada: Id={SaleId} Numero={Number} Motivo={Reason}",
             sale.Id, sale.Number, sale.CancellationReason);
 
         var cancelledSale = await LoadSaleAsync(sale.Id, asTracking: false, cancellationToken);
@@ -260,6 +295,28 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             query = query.AsNoTracking();
 
         return await query.FirstOrDefaultAsync(cancellationToken);
+    }
+
+    // Atomic increment — implementation differs by provider:
+    // PostgreSQL (production): UPDATE ... RETURNING is atomic and lock-free at row level.
+    // SQLite (tests): single-threaded in-memory, no concurrent writers, so read-then-write is safe.
+    private async Task<int> GetNextSaleNumberAsync(CancellationToken cancellationToken)
+    {
+        if (db.Database.IsNpgsql())
+        {
+            // EF Core wraps SqlQuery<T> in "SELECT t.* FROM (...) AS t" which breaks RETURNING in SQLite.
+            // In PostgreSQL this works correctly.
+            var result = await db.Database
+                .SqlQuery<int>($"UPDATE sale_counters SET last_number = last_number + 1 WHERE id = 1 RETURNING last_number")
+                .ToListAsync(cancellationToken);
+            return result.Single();
+        }
+
+        // SQLite: simpler approach — acceptable in single-threaded test environment
+        var counter = await db.SaleCounters.FirstAsync(cancellationToken);
+        counter.LastNumber++;
+        await db.SaveChangesAsync(cancellationToken);
+        return counter.LastNumber;
     }
 
     private static string? ValidateRequest(CreateSaleRequest request)

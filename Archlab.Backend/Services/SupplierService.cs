@@ -10,6 +10,9 @@ public sealed class SupplierService(PdvDbContext db)
     public async Task<PagedResponse<SupplierResponse>> ListAsync(
         string? search, bool? isActive, int page, int pageSize, CancellationToken ct)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        page = Math.Max(1, page);
+
         var query = db.Suppliers.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))

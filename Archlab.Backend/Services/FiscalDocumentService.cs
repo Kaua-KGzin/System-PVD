@@ -17,12 +17,10 @@ public sealed class FiscalDocumentService(PdvDbContext db)
 
     public async Task<FiscalDocument> BuildForSaleAsync(Sale sale, CancellationToken cancellationToken)
     {
-        var nextNumber = await db.FiscalDocuments
-            .Select(document => (int?)document.Number)
-            .MaxAsync(cancellationToken) ?? 0;
-
-        nextNumber++;
-
+        // Atomic increment — same pattern as SaleCounter.
+        // Avoids the MAX() race condition where two concurrent sales could read the same max
+        // and both produce the same fiscal number.
+        var nextNumber = await GetNextFiscalNumberAsync(cancellationToken);
         var accessKey = BuildAccessKey(sale.CreatedAt, nextNumber);
 
         return new FiscalDocument
@@ -60,6 +58,23 @@ public sealed class FiscalDocumentService(PdvDbContext db)
         return document is null
             ? ServiceResult<FiscalDocumentResponse>.Fail("Venda sem documento fiscal emitido.", StatusCodes.Status404NotFound)
             : ServiceResult<FiscalDocumentResponse>.Ok(FiscalDocumentResponse.From(document));
+    }
+
+    private async Task<int> GetNextFiscalNumberAsync(CancellationToken cancellationToken)
+    {
+        if (db.Database.IsNpgsql())
+        {
+            var result = await db.Database
+                .SqlQuery<int>($"UPDATE fiscal_counters SET last_number = last_number + 1 WHERE id = 1 RETURNING last_number")
+                .ToListAsync(cancellationToken);
+            return result.Single();
+        }
+
+        // SQLite: acceptable in single-threaded test environment
+        var counter = await db.FiscalCounters.FirstAsync(cancellationToken);
+        counter.LastNumber++;
+        await db.SaveChangesAsync(cancellationToken);
+        return counter.LastNumber;
     }
 
     private static string BuildAccessKey(DateTimeOffset issuedAt, int number)

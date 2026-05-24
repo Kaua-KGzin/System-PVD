@@ -27,6 +27,9 @@ public sealed class UserService(PdvDbContext db)
 
     public async Task<PagedResponse<UserResponse>> ListAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        page = Math.Max(1, page);
+
         var query = db.Users.AsNoTracking();
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query

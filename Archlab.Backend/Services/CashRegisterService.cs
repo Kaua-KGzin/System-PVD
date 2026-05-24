@@ -15,6 +15,9 @@ public sealed class CashRegisterService(PdvDbContext db)
         int pageSize,
         CancellationToken cancellationToken)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        page = Math.Max(1, page);
+
         var query = db.CashSessions.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(terminalId))

@@ -21,6 +21,7 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<PurchaseEntry> PurchaseEntries => Set<PurchaseEntry>();
     public DbSet<PurchaseEntryItem> PurchaseEntryItems => Set<PurchaseEntryItem>();
+    public DbSet<FiscalCounter> FiscalCounters => Set<FiscalCounter>();
 
     private static readonly ValueConverter<DateTimeOffset, long> DateTimeOffsetConverter = new(
         value => value.ToUniversalTime().Ticks,
@@ -45,11 +46,19 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
         {
             entity.HasKey(r => r.Id);
             entity.HasIndex(r => r.Token).IsUnique();
-            entity.Property(r => r.Token).HasMaxLength(128).IsRequired();
+            entity.Property(r => r.Token).HasMaxLength(64).IsRequired();  // SHA-256 = 32 bytes = 64 hex chars
+            entity.HasIndex(r => r.TokenFamily);
+            entity.Property(r => r.TokenFamily).IsRequired();
+            entity.Property(r => r.ReplacedByToken).HasMaxLength(64);
             entity.HasOne(r => r.User)
                 .WithMany()
                 .HasForeignKey(r => r.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FiscalCounter>(entity =>
+        {
+            entity.HasKey(c => c.Id);
         });
 
         modelBuilder.Entity<SaleCounter>(entity =>
