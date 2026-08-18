@@ -130,5 +130,12 @@ appsettings.Production.json
 dist-desktop/
 Archlab.Desktop/wwwroot/
 
-# Agent tooling local to each machine (skills embutidas, fontes, schemas)
+# Agent tooling: fica so na maquina de cada um, fora do repo.
+# Os arquivos continuam existindo localmente — so nao sao versionados.
 .claude/
+.agents/
+.cursor/
+.cursorrules
+CLAUDE.md
+AGENTS.md
+GEMINI.md
