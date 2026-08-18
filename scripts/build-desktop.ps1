@@ -1,5 +1,10 @@
 # Builds the ARCHNEXUS desktop executable: React build -> embedded in the assembly -> single exe.
 # Usage:  powershell -ExecutionPolicy Bypass -File scripts\build-desktop.ps1
+#         powershell -ExecutionPolicy Bypass -File scripts\build-desktop.ps1 -Version 1.2.3
+param(
+    # Stamped into the assembly. Omitted locally; the release workflow passes the tag.
+    [string]$Version
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -25,7 +30,9 @@ New-Item -ItemType Directory -Path $webroot | Out-Null
 Copy-Item (Join-Path $frontend 'dist\*') $webroot -Recurse -Force
 
 Write-Host '==> Publishing the executable' -ForegroundColor Cyan
-dotnet publish $desktop -c Release -o $output --nologo
+$publishArgs = @($desktop, '-c', 'Release', '-o', $output, '--nologo')
+if ($Version) { $publishArgs += "-p:Version=$Version" }
+dotnet publish @publishArgs
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed with exit code $LASTEXITCODE" }
 
 $exe = Join-Path $output 'ArchNexus.exe'

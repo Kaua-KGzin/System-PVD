@@ -1,0 +1,105 @@
+name: Release
+
+# Publica o ArchNexus.exe (self-contained, ~142 MB) numa release do GitHub.
+#
+#   git tag v1.0.0 && git push origin v1.0.0   -> testa, builda e cria a release
+#   Actions > Release > Run workflow            -> so builda, anexa o exe como artifact
+#
+# O executavel NAO e assinado. Windows com Smart App Control ligado vai bloquear a
+# execucao — distribuicao real exige um certificado de code signing (OV ou EV).
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versao do build de teste (sem release), ex. 0.9.0-dev'
+        required: false
+        default: '0.0.0-dev'
+
+permissions:
+  contents: write
+
+jobs:
+  desktop:
+    name: ArchNexus.exe (Windows)
+    # WinForms + net10.0-windows: so builda no Windows.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Resolver a versao
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $version = $env:GITHUB_REF -replace '^refs/tags/v', ''
+          } else {
+            $version = '${{ inputs.version }}'
+          }
+          if (-not $version) { $version = '0.0.0-dev' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Versao: $version"
+
+      - name: Instalar dependencias do frontend
+        run: npm ci
+        working-directory: frontend
+
+      - name: Testes do backend
+        run: dotnet test Archlab.Backend.Tests/Archlab.Backend.Tests.csproj -c Release --nologo
+
+      - name: Buildar o executavel
+        shell: pwsh
+        # Mesmo script do build local, para os dois caminhos nao divergirem.
+        run: ./scripts/build-desktop.ps1 -Version ${{ steps.version.outputs.version }}
+
+      - name: Gerar o checksum
+        shell: pwsh
+        run: |
+          $exe = Get-Item dist-desktop/ArchNexus.exe
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  ArchNexus.exe" | Set-Content dist-desktop/ArchNexus.exe.sha256 -Encoding ascii
+          Write-Host "SHA256: $hash"
+          Write-Host ("Tamanho: {0} MB" -f [math]::Round($exe.Length / 1MB, 1))
+
+      - name: Anexar o build como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArchNexus-${{ steps.version.outputs.version }}
+          path: |
+            dist-desktop/ArchNexus.exe
+            dist-desktop/ArchNexus.exe.sha256
+          retention-days: 14
+
+      - name: Criar a release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $hash = (Get-FileHash dist-desktop/ArchNexus.exe -Algorithm SHA256).Hash.ToLower()
+          # O texto mora em .github/release-notes-template.md para ser editavel sem mexer no workflow.
+          $notes = (Get-Content .github/release-notes-template.md -Raw) `
+            -replace '\{VERSION\}', $version -replace '\{HASH\}', $hash
+          $notes | Set-Content release-notes.md -Encoding utf8
+          gh release create $env:GITHUB_REF_NAME `
+            dist-desktop/ArchNexus.exe `
+            dist-desktop/ArchNexus.exe.sha256 `
+            --title "ARCHNEXUS $version" `
+            --notes-file release-notes.md
