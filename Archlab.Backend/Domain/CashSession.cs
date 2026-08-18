@@ -13,6 +13,8 @@ public sealed class CashSession
     public decimal? ClosingDifference { get; set; }
     public string? ClosingNotes { get; set; }
     public CashSessionStatus Status { get; set; } = CashSessionStatus.Open;
+    public uint RowVersion { get; set; }
+
 
     public List<Sale> Sales { get; set; } = [];
 }

@@ -33,6 +33,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
 
         var totalCount = await query.CountAsync(cancellationToken);
 
+
         var items = await query
             .OrderByDescending(sale => sale.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -78,6 +79,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
 
         var counter = await db.SaleCounters.FirstAsync(cancellationToken);
         counter.LastNumber++;
+        counter.RowVersion++;
 
         if (request.CustomerId.HasValue)
         {
@@ -132,6 +134,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
 
             product.StockQuantity -= requestedItem.Quantity;
             product.UpdatedAt = DateTimeOffset.UtcNow;
+            product.RowVersion++;
 
             db.InventoryMovements.Add(new InventoryMovement
             {
@@ -172,16 +175,27 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             return ServiceResult<SaleResponse>.Fail("Troco so pode ser gerado a partir de pagamento em dinheiro.");
 
         db.Sales.Add(sale);
-        await db.SaveChangesAsync(cancellationToken);
 
-        if (request.IssueFiscalDocument)
+        try
         {
-            var document = await fiscalDocumentService.BuildForSaleAsync(sale, cancellationToken);
-            db.FiscalDocuments.Add(document);
             await db.SaveChangesAsync(cancellationToken);
+
+            if (request.IssueFiscalDocument)
+            {
+                var document = await fiscalDocumentService.BuildForSaleAsync(sale, cancellationToken);
+                db.FiscalDocuments.Add(document);
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            logger.LogWarning(ex, "Concurrence conflict detected while saving sale {SaleId}.", sale.Id);
+            await transaction.RollbackAsync(cancellationToken);
+            return ServiceResult<SaleResponse>.Fail("Conflito de concorrencia ao registrar venda. Tente novamente.", StatusCodes.Status409Conflict);
         }
 
-        await transaction.CommitAsync(cancellationToken);
 
         logger.LogInformation(
             "Sale created: Id={SaleId} Number={Number} Terminal={Terminal} Operator={Operator} Total={NetTotal:F2}",
@@ -220,6 +234,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             var product = products[item.ProductId];
             product.StockQuantity += item.Quantity;
             product.UpdatedAt = DateTimeOffset.UtcNow;
+            product.RowVersion++;
 
             db.InventoryMovements.Add(new InventoryMovement
             {
@@ -237,8 +252,18 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             sale.FiscalDocument.CancelledAt = DateTimeOffset.UtcNow;
         }
 
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            logger.LogWarning(ex, "Concurrence conflict during sale cancellation: Id={SaleId}", sale.Id);
+            await transaction.RollbackAsync(cancellationToken);
+            return ServiceResult<SaleResponse>.Fail("Conflito de concorrencia ao cancelar venda. Tente novamente.", StatusCodes.Status409Conflict);
+        }
+
 
         logger.LogInformation(
             "Sale cancelled: Id={SaleId} Number={Number} Reason={Reason}",

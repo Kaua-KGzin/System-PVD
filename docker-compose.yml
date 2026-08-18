@@ -27,7 +27,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: Development
       DatabaseProvider: PostgreSQL
       ConnectionStrings__DefaultConnection: "Host=db;Database=archlab;Username=archlab;Password=${POSTGRES_PASSWORD}"
       Jwt__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}

@@ -15,6 +15,8 @@ public sealed class Product
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public uint RowVersion { get; set; }
+
 
     public List<InventoryMovement> InventoryMovements { get; set; } = [];
 }

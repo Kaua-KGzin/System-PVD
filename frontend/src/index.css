@@ -6,8 +6,10 @@
   --border: #e2e4e9;
   --text: #374151;
   --text-muted: #6b7280;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
+  /* Sampled from the ARCHNEXUS logo gradient: bright end #972CFB, deep end #4708AF. */
+  --primary: #550CC5;
+  --primary-hover: #4708AF;
+  --brand-accent: #972CFB;
   --danger: #dc2626;
   --danger-hover: #b91c1c;
   --warn: #d97706;
@@ -41,10 +43,11 @@ body {
   border-bottom: 1px solid #1f2937;
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 0;
 }
-.brand-arch { font-size: 20px; font-weight: 800; color: #3b82f6; letter-spacing: -0.5px; }
-.brand-system { font-size: 14px; font-weight: 400; color: #9ca3af; }
+/* Follows the ARCHNEXUS wordmark: ARCH in the logo violet, NEXUS in light, set as one word. */
+.brand-arch { font-size: 20px; font-weight: 800; color: var(--brand-accent); letter-spacing: 1px; }
+.brand-nexus { font-size: 20px; font-weight: 300; color: #e5e7eb; letter-spacing: 1px; }
 
 .sidebar-nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; }
 .nav-link {
@@ -59,7 +62,7 @@ body {
   transition: background 0.15s, color 0.15s;
 }
 .nav-link:hover { background: #1f2937; color: #f9fafb; }
-.nav-link.active { background: #1d4ed8; color: #fff; }
+.nav-link.active { background: var(--primary); color: #fff; }
 
 .sidebar-footer {
   padding: 12px;
@@ -209,9 +212,9 @@ button { cursor: pointer; border: none; font-family: inherit; font-size: 14px; }
 /* ── Login ── */
 .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); }
 .login-card { background: var(--surface); border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 400px; box-shadow: 0 25px 60px rgba(0,0,0,0.25); }
-.login-header { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
-.login-brand { font-size: 32px; font-weight: 800; color: var(--primary); letter-spacing: -1px; }
-.login-brand-sub { font-size: 20px; font-weight: 400; color: var(--text-muted); }
+.login-header { display: flex; align-items: baseline; gap: 0; margin-bottom: 4px; }
+.login-brand { font-size: 32px; font-weight: 800; color: var(--brand-accent); letter-spacing: 2px; }
+.login-brand-sub { font-size: 32px; font-weight: 300; color: var(--text); letter-spacing: 2px; }
 .login-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
 .login-card form { display: flex; flex-direction: column; gap: 16px; }
 .login-error { color: var(--danger); font-size: 13px; }

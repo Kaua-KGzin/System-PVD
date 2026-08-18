@@ -11,8 +11,22 @@ public static class DatabaseSeeder
         var db = scope.ServiceProvider.GetRequiredService<PdvDbContext>();
         var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         var environment = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("DatabaseSeeder");
 
-        await db.Database.MigrateAsync();
+        // If migration files exist, apply them; otherwise create schema directly from the model.
+        // This supports both production (with migrations) and local dev (EnsureCreated).
+        var hasMigrations = db.Database.GetMigrations().Any();
+        if (hasMigrations)
+        {
+            logger.LogInformation("Applying pending migrations...");
+            await db.Database.MigrateAsync();
+        }
+        else
+        {
+            logger.LogInformation("No migration files found. Using EnsureCreated to build schema from model.");
+            await db.Database.EnsureCreatedAsync();
+        }
 
         if (!await db.SaleCounters.AnyAsync())
         {

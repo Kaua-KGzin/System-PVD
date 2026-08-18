@@ -32,7 +32,7 @@ export default function LoginPage() {
       <div className="login-card">
         <div className="login-header">
           <span className="login-brand">ARCH</span>
-          <span className="login-brand-sub">System</span>
+          <span className="login-brand-sub">NEXUS</span>
         </div>
         <p className="login-subtitle">Sistema de Gestão Comercial</p>
 

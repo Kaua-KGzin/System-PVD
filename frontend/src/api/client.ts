@@ -18,7 +18,9 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config
-    if (error.response?.status === 401 && !original._retry) {
+    const isRefreshRequest = original?.url?.includes('/api/auth/refresh')
+
+    if (error.response?.status === 401 && !original._retry && !isRefreshRequest) {
       original._retry = true
       const { refreshToken, login, logout } = useAuthStore.getState()
 
@@ -41,10 +43,15 @@ api.interceptors.response.use(
           return api(original)
         } catch {
           logout()
-          window.location.href = '/login'
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login'
+          }
         }
       } else {
-        window.location.href = '/login'
+        logout()
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
       }
     }
     return Promise.reject(error)

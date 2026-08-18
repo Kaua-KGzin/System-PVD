@@ -1,8 +1,10 @@
 <div align="center">
 
-# 🏪 ARCH System — Sistema de Gestão Comercial
+<img src="assets/archnexus-logo.png" alt="ARCHNEXUS" width="180" />
 
-**ERP / Ponto de Venda — Backend .NET 10 · React 19 · PostgreSQL**
+# ARCHNEXUS — Sistema de Gestão Comercial
+
+**ERP / Ponto de Venda — Backend .NET 10 · React 19 · PostgreSQL · App desktop Windows**
 
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet)](https://dotnet.microsoft.com/)
 [![EF Core](https://img.shields.io/badge/EF_Core-10-7B68EE?style=for-the-badge)](https://learn.microsoft.com/ef/core/)
@@ -169,7 +171,7 @@ dotnet test Archlab.Backend.Tests
 ## 📁 Estrutura
 
 ```
-ARCH System/
+ARCHNEXUS/
 ├── Archlab.Backend/             # ASP.NET Core 10 Minimal APIs
 │   ├── Domain/                  # Entidades de domínio (15)
 │   ├── Data/                    # DbContext · Migrations · Seeder · Factory
@@ -208,6 +210,6 @@ ARCH System/
 
 <div align="center">
 
-**ARCHlab · ARCH System · Solo project by Kauã ([@Kaua-KGzin](https://github.com/Kaua-KGzin))**
+**ARCHlab · ARCHNEXUS · Solo project by Kauã ([@Kaua-KGzin](https://github.com/Kaua-KGzin))**
 
 </div>

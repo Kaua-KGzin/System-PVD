@@ -46,7 +46,8 @@ public static class CashRegisterEndpoints
             CancellationToken cancellationToken) =>
             (await service.OpenAsync(request, cancellationToken))
                 .ToCreatedResult(session => $"/api/cash-sessions/{session.Id}"))
-            .WithName("OpenCashSession");
+            .WithName("OpenCashSession")
+            .WithValidation<OpenCashSessionRequest>();
 
         group.MapPost("/{id:guid}/close", async (
             Guid id,
@@ -54,7 +55,9 @@ public static class CashRegisterEndpoints
             CashRegisterService service,
             CancellationToken cancellationToken) =>
             (await service.CloseAsync(id, request, cancellationToken)).ToHttpResult())
-            .WithName("CloseCashSession");
+            .WithName("CloseCashSession")
+            .WithValidation<CloseCashSessionRequest>();
+
 
         return app;
     }

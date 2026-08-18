@@ -21,6 +21,8 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<PurchaseEntry> PurchaseEntries => Set<PurchaseEntry>();
     public DbSet<PurchaseEntryItem> PurchaseEntryItems => Set<PurchaseEntryItem>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
 
     private static readonly ValueConverter<DateTimeOffset, long> DateTimeOffsetConverter = new(
         value => value.ToUniversalTime().Ticks,
@@ -55,7 +57,21 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
         modelBuilder.Entity<SaleCounter>(entity =>
         {
             entity.HasKey(c => c.Id);
+            entity.Property(c => c.RowVersion).IsConcurrencyToken();
         });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+            entity.HasIndex(a => a.Timestamp);
+            entity.HasIndex(a => a.EntityName);
+            entity.Property(a => a.Action).HasMaxLength(40).IsRequired();
+            entity.Property(a => a.EntityName).HasMaxLength(80).IsRequired();
+            entity.Property(a => a.EntityId).HasMaxLength(80);
+            entity.Property(a => a.UserId).HasMaxLength(80);
+            entity.Property(a => a.Username).HasMaxLength(120);
+        });
+
 
         modelBuilder.Entity<Category>(entity =>
         {
@@ -87,6 +103,7 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
             entity.Property(product => product.UnitPrice).HasPrecision(18, 2);
             entity.Property(product => product.StockQuantity).HasPrecision(18, 3);
             entity.Property(product => product.MinStockQuantity).HasPrecision(18, 3);
+            entity.Property(product => product.RowVersion).IsConcurrencyToken();
             entity.HasOne(product => product.Category)
                 .WithMany(c => c.Products)
                 .HasForeignKey(product => product.CategoryId)
@@ -105,7 +122,9 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
             entity.Property(session => session.ClosingDifference).HasPrecision(18, 2);
             entity.Property(session => session.ClosingNotes).HasMaxLength(400);
             entity.Property(session => session.Status).HasConversion<string>().HasMaxLength(24);
+            entity.Property(session => session.RowVersion).IsConcurrencyToken();
         });
+
 
         modelBuilder.Entity<Sale>(entity =>
         {

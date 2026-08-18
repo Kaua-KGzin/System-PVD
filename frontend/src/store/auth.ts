@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import type { AuthResponse } from '../types'
 
 // JWT token lives only in memory (never persisted) to prevent XSS token theft.
@@ -15,8 +15,11 @@ interface AuthState {
   setToken: (token: string) => void
 }
 
+// Persisted shape: everything except the in-memory token and the actions
+type PersistedAuth = Pick<AuthState, 'refreshToken' | 'username' | 'role' | 'isAuthenticated'>
+
 export const useAuthStore = create<AuthState>()(
-  persist(
+  persist<AuthState, [], [], PersistedAuth>(
     (set) => ({
       token: null,
       refreshToken: null,
@@ -39,14 +42,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'archlab-auth',
-      storage: {
-        getItem: (key) => {
-          const value = sessionStorage.getItem(key)
-          return value ? JSON.parse(value) : null
-        },
-        setItem: (key, value) => sessionStorage.setItem(key, JSON.stringify(value)),
-        removeItem: (key) => sessionStorage.removeItem(key),
-      },
+      storage: createJSONStorage(() => sessionStorage),
       // Exclude JWT access token from persistence — keep only session metadata
       partialize: (state) => ({
         refreshToken: state.refreshToken,

@@ -28,7 +28,7 @@ export default function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-brand">
         <span className="brand-arch">ARCH</span>
-        <span className="brand-system">System</span>
+        <span className="brand-nexus">NEXUS</span>
       </div>
 
       <nav className="sidebar-nav">

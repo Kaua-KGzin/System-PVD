@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- ARCHlab is the company; ARCHNEXUS is this product. The namespace keeps the company,
+         the shipped identity carries the product. -->
+    <AssemblyName>ArchNexus</AssemblyName>
+    <RootNamespace>Archlab.Desktop</RootNamespace>
+    <Product>ARCHNEXUS</Product>
+    <Company>ARCHlab</Company>
+    <AssemblyTitle>ARCHNEXUS</AssemblyTitle>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>archnexus.ico</ApplicationIcon>
+    <!-- One file on the cashier's desktop, no runtime to install first. -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Archlab.Backend is an executable (Web SDK) but is consumed here as a library: this host
+         calls ArchlabApi.Build in-process and never launches the backend's own entry point.
+         Without this, NETSDK1150 blocks a self-contained app from referencing it. -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Required by ManifestEmbeddedFileProvider to resolve embedded paths as files. -->
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- This is a WinForms SDK project hosting Kestrel in-process, so the ASP.NET Core shared
+         framework has to be requested explicitly. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3351.48" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Archlab.Backend\Archlab.Backend.csproj" />
+  </ItemGroup>
+
+  <!-- The React build, copied here by scripts/build-desktop.ps1 and embedded in the assembly
+       so the published executable carries the UI instead of a loose folder beside it. -->
+  <ItemGroup>
+    <EmbeddedResource Include="wwwroot\**\*" />
+  </ItemGroup>
+
+</Project>

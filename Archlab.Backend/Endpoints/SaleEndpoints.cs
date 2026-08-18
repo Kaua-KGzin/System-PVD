@@ -40,7 +40,8 @@ public static class SaleEndpoints
             CancellationToken cancellationToken) =>
             (await service.CreateAsync(request, cancellationToken))
                 .ToCreatedResult(sale => $"/api/sales/{sale.Id}"))
-            .WithName("CreateSale");
+            .WithName("CreateSale")
+            .WithValidation<CreateSaleRequest>();
 
         group.MapPost("/{id:guid}/cancel", async (
             Guid id,
@@ -49,7 +50,9 @@ public static class SaleEndpoints
             CancellationToken cancellationToken) =>
             (await service.CancelAsync(id, request, cancellationToken)).ToHttpResult())
             .WithName("CancelSale")
-            .RequireAuthorization("AdminOrManager");
+            .RequireAuthorization("AdminOrManager")
+            .WithValidation<CancelSaleRequest>();
+
 
         return app;
     }

@@ -137,4 +137,15 @@ public sealed class SaleServiceTests : IDisposable
         Assert.Equal(3, page1.Items.Count);
         Assert.Equal(2, page2.Items.Count);
     }
+
+    [Fact]
+    public async Task CancelSale_GeneratesAuditLogs()
+    {
+        var sale = await _sut.CreateAsync(BuildSaleRequest(), default);
+        await _sut.CancelAsync(sale.Value!.Id, new CancelSaleRequest("Auditoria de cancelamento"), default);
+
+        var auditLogs = await _db.AuditLogs.Where(a => a.EntityName == "Sale").ToListAsync();
+        Assert.NotEmpty(auditLogs);
+    }
 }
+

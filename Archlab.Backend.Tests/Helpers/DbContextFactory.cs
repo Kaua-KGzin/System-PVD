@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -12,14 +13,17 @@ public static class DbContextFactory
     /// The returned tuple includes the context AND the open connection that keeps the DB alive.
     /// The caller must dispose BOTH.
     /// </summary>
-    public static (PdvDbContext Db, SqliteConnection Connection) CreateWithConnection()
+    public static (PdvDbContext Db, SqliteConnection Connection) CreateWithConnection(
+        IHttpContextAccessor? httpContextAccessor = null)
     {
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
 
         var options = new DbContextOptionsBuilder<PdvDbContext>()
             .UseSqlite(connection)
+            .AddInterceptors(new Archlab.Backend.Data.Interceptors.AuditLogInterceptor(httpContextAccessor))
             .Options;
+
 
         var db = new PdvDbContext(options);
         db.Database.EnsureCreated();

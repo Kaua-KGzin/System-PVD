@@ -119,6 +119,8 @@ public sealed class CashRegisterService(PdvDbContext db)
         if (session.Status == CashSessionStatus.Closed)
             return ServiceResult<CashSessionResponse>.Fail("Esta sessao de caixa ja esta fechada.", StatusCodes.Status409Conflict);
 
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
         var expectedClosing = await CalculateExpectedClosingAsync(session, cancellationToken);
         session.ExpectedClosingAmount = expectedClosing;
         session.ClosingAmount = request.ClosingAmount;
@@ -126,11 +128,22 @@ public sealed class CashRegisterService(PdvDbContext db)
         session.ClosingNotes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
         session.ClosedAt = DateTimeOffset.UtcNow;
         session.Status = CashSessionStatus.Closed;
+        session.RowVersion++;
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return ServiceResult<CashSessionResponse>.Fail("Conflito de concorrencia ao fechar o caixa. Tente novamente.", StatusCodes.Status409Conflict);
+        }
 
         return ServiceResult<CashSessionResponse>.Ok(CashSessionResponse.From(session, expectedClosing));
     }
+
 
     private async Task<decimal> CalculateExpectedClosingAsync(CashSession session, CancellationToken cancellationToken)
     {
