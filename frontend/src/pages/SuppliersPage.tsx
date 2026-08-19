@@ -103,10 +103,10 @@ export default function SuppliersPage() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>{editing ? 'Editar fornecedor' : 'Novo fornecedor'}</h2>
             <div className="form-grid">
-              {([['name', 'Razão social *'], ['cnpj', 'CNPJ'], ['contactName', 'Contato'], ['phone', 'Telefone'], ['email', 'E-mail']] as [string, string][]).map(([key, label]) => (
+              {([['name', 'Razão social *'], ['cnpj', 'CNPJ'], ['contactName', 'Contato'], ['phone', 'Telefone'], ['email', 'E-mail']] as [keyof typeof form, string][]).map(([key, label]) => (
                 <div className="form-group" key={key}>
                   <label>{label}</label>
-                  <input value={(form as any)[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
+                  <input value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
                 </div>
               ))}
             </div>

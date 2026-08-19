@@ -134,20 +134,24 @@ export default function CatalogPage() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>{editing ? 'Editar produto' : 'Novo produto'}</h2>
             <div className="form-grid">
-              {['barcode:Código de barras', 'name:Nome', 'unitOfMeasure:Unidade', 'unitPrice:Preço', 'stockQuantity:Estoque', 'minStockQuantity:Estoque mínimo'].map((field) => {
-                const [key, label] = field.split(':')
-                return (
-                  <div className="form-group" key={key}>
-                    <label>{label}</label>
-                    <input
-                      value={(form as any)[key]}
-                      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                      type={['unitPrice', 'stockQuantity', 'minStockQuantity'].includes(key) ? 'number' : 'text'}
-                      step="0.01"
-                    />
-                  </div>
-                )
-              })}
+              {([
+                ['barcode', 'Código de barras'],
+                ['name', 'Nome'],
+                ['unitOfMeasure', 'Unidade'],
+                ['unitPrice', 'Preço'],
+                ['stockQuantity', 'Estoque'],
+                ['minStockQuantity', 'Estoque mínimo'],
+              ] as [keyof typeof form, string][]).map(([key, label]) => (
+                <div className="form-group" key={key}>
+                  <label>{label}</label>
+                  <input
+                    value={form[key]}
+                    onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                    type={['unitPrice', 'stockQuantity', 'minStockQuantity'].includes(key) ? 'number' : 'text'}
+                    step="0.01"
+                  />
+                </div>
+              ))}
               <div className="form-group">
                 <label>Categoria</label>
                 <select value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}>

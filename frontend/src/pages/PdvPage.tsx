@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react'
 import { api } from '../api/client'
+import { errorDetail } from '../api/errors'
 import { useCartStore } from '../store/cart'
 import { useSettingsStore } from '../store/settings'
 import type { CashSession, Product } from '../types'
@@ -61,8 +62,8 @@ export default function PdvPage() {
       setMsg({ type: 'ok', text: `Venda #${sale.number} finalizada!` })
       setTimeout(() => setMsg(null), 4000)
     },
-    onError: (e: any) => {
-      setMsg({ type: 'err', text: e.response?.data?.detail ?? 'Erro ao finalizar venda.' })
+    onError: (e) => {
+      setMsg({ type: 'err', text: errorDetail(e, 'Erro ao finalizar venda.') })
       setTimeout(() => setMsg(null), 4000)
     },
   })

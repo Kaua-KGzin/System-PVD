@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Edit2, Search, UserCheck, UserX } from 'lucide-react'
 import { api } from '../api/client'
+import { errorDetail } from '../api/errors'
 import type { PagedResponse, Customer } from '../types'
 
 export default function CustomersPage() {
@@ -45,8 +46,8 @@ export default function CustomersPage() {
       setEditing(null)
       setError('')
     },
-    onError: (e: any) => {
-      setError(e.response?.data?.detail ?? 'Erro ao salvar cliente.')
+    onError: (e) => {
+      setError(errorDetail(e, 'Erro ao salvar cliente.'))
     },
   })
 
