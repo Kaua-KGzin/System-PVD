@@ -130,6 +130,11 @@ appsettings.Production.json
 dist-desktop/
 Archlab.Desktop/wwwroot/
 
+# Planejamento: os roadmaps sao material de acompanhamento do time, nao do produto.
+# Continuam no disco de quem usa — so nao sao versionados.
+roadmap.html
+docs/roadmaps/
+
 # Agent tooling: fica so na maquina de cada um, fora do repo.
 # Os arquivos continuam existindo localmente — so nao sao versionados.
 .claude/
