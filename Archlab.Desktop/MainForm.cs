@@ -12,6 +12,11 @@ internal sealed class MainForm : Form
     private readonly UiPreferences _preferences = UiPreferences.Load();
 
     private bool _isFullScreen;
+
+    // The mode the operator put the window in, which web content is not allowed to overwrite.
+    // Kept apart from _isFullScreen so a fullscreen element can borrow the screen and hand it back.
+    private bool _userFullScreen;
+
     private FormWindowState _restoreState;
     private FormBorderStyle _restoreBorder;
     private Rectangle _restoreBounds;
@@ -84,9 +89,12 @@ internal sealed class MainForm : Form
             _webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
 
             // Web content can request fullscreen on its own (a chart, a receipt preview). Follow
-            // it, or the element would expand inside a window that stays framed.
+            // it, or the element would expand inside a window that stays framed — but give the
+            // window back the mode the operator chose once the element is gone. Dropping to
+            // windowed unconditionally would knock a fullscreen till out of fullscreen because a
+            // chart closed, leaving the window and the saved preference disagreeing.
             _webView.CoreWebView2.ContainsFullScreenElementChanged += (_, _) =>
-                SetFullScreen(_webView.CoreWebView2.ContainsFullScreenElement);
+                SetFullScreen(_webView.CoreWebView2.ContainsFullScreenElement || _userFullScreen);
 
             _webView.CoreWebView2.Navigate(_startUrl);
 
@@ -94,6 +102,8 @@ internal sealed class MainForm : Form
             {
                 SetFullScreen(true);
             }
+
+            _userFullScreen = _isFullScreen;
         }
         catch (WebView2RuntimeNotFoundException)
         {
@@ -125,24 +135,32 @@ internal sealed class MainForm : Form
         {
             case "toggle-fullscreen":
                 SetFullScreen(!_isFullScreen);
+                _userFullScreen = _isFullScreen;
                 RememberWindowMode();
                 break;
 
             // Esc is the reflex when a screen has no visible way out. It only leaves fullscreen,
-            // so it can never close the till by accident.
+            // so it can never close the till by accident — and it is not remembered: the page
+            // ignores Esc entirely, so an operator presses it seeing no effect, and persisting it
+            // would silently cost them the fullscreen setting they chose with F11.
             case "exit-fullscreen" when _isFullScreen:
                 SetFullScreen(false);
-                RememberWindowMode();
+                _userFullScreen = false;
                 break;
         }
     }
 
     /// <summary>
-    /// Only a deliberate keypress is remembered. Fullscreen entered by web content is transient
-    /// and must not decide how the till opens tomorrow.
+    /// Only F11 is remembered. Fullscreen entered by web content is transient, and Esc is an
+    /// escape hatch rather than a choice; neither decides how the till opens tomorrow.
     /// </summary>
     private void RememberWindowMode()
     {
+        if (_preferences.FullScreen == _isFullScreen)
+        {
+            return;
+        }
+
         _preferences.FullScreen = _isFullScreen;
         _preferences.Save();
     }
