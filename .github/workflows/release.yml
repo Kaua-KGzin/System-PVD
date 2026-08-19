@@ -30,6 +30,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # O changelog da release sai da anotacao da tag, que so existe no repo local
+          # quando as tags sao buscadas.
+          fetch-depth: 0
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
@@ -94,9 +98,20 @@ jobs:
         run: |
           $version = '${{ steps.version.outputs.version }}'
           $hash = (Get-FileHash dist-desktop/ArchNexus.exe -Algorithm SHA256).Hash.ToLower()
+
+          # O que mudou vem da anotacao da tag (git tag -a), para o template seguir generico.
+          # Uma tag leve nao tem anotacao: a release ainda sai, so sem changelog.
+          $changes = (git for-each-ref "refs/tags/$env:GITHUB_REF_NAME" --format='%(contents)') -join "`n"
+          if ([string]::IsNullOrWhiteSpace($changes)) {
+            $changes = '_Sem notas para esta versao._'
+          }
+
           # O texto mora em .github/release-notes-template.md para ser editavel sem mexer no workflow.
-          $notes = (Get-Content .github/release-notes-template.md -Raw) `
-            -replace '\{VERSION\}', $version -replace '\{HASH\}', $hash
+          # Replace literal, e nao -replace: o changelog pode conter $ e ser lido como backreference.
+          $notes = (Get-Content .github/release-notes-template.md -Raw).
+            Replace('{VERSION}', $version).
+            Replace('{HASH}', $hash).
+            Replace('{CHANGES}', $changes.Trim())
           $notes | Set-Content release-notes.md -Encoding utf8
           gh release create $env:GITHUB_REF_NAME `
             dist-desktop/ArchNexus.exe `
