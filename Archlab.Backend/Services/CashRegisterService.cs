@@ -107,7 +107,7 @@ public sealed class CashRegisterService(PdvDbContext db)
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (DbConflict.IsRetryable(ex))
+        catch (Exception ex) when (DbConflict.IsRetryable(ex))
         {
             // "One open session per terminal" is held by the read above inside a Serializable
             // transaction, not by a unique index. On PostgreSQL two simultaneous openings both
@@ -153,7 +153,7 @@ public sealed class CashRegisterService(PdvDbContext db)
             await transaction.RollbackAsync(cancellationToken);
             return ServiceResult<CashSessionResponse>.Fail("Conflito de concorrencia ao fechar o caixa. Tente novamente.", StatusCodes.Status409Conflict);
         }
-        catch (DbUpdateException ex) when (DbConflict.IsRetryable(ex))
+        catch (Exception ex) when (DbConflict.IsRetryable(ex))
         {
             await transaction.RollbackAsync(cancellationToken);
             return ServiceResult<CashSessionResponse>.Fail("Conflito de concorrencia ao fechar o caixa. Tente novamente.", StatusCodes.Status409Conflict);

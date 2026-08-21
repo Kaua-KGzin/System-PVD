@@ -87,6 +87,52 @@ public sealed class ReportTimeZoneTests : IDisposable
         Assert.Equal(new DateOnly(2026, 3, 10), Assert.Single(days).Date);
     }
 
+    /// <summary>
+    /// The window bounds are compared against Sale.CreatedAt, which is `timestamp with time zone`
+    /// on PostgreSQL — and Npgsql refuses a DateTimeOffset parameter whose offset is not zero.
+    /// A window built in the store's zone therefore has to be handed over as UTC instants, or the
+    /// dashboard throws before it queries anything. SQLite converts to ticks and never notices,
+    /// which is exactly why this is asserted rather than left to the provider.
+    /// </summary>
+    [Theory]
+    [InlineData(SaoPaulo)]
+    [InlineData("UTC")]
+    [InlineData("America/New_York")]
+    public void Janela_do_dia_sai_em_UTC(string timeZoneId)
+    {
+        var zone = StoreTimeZone.Resolve(timeZoneId);
+
+        var (start, end) = StoreTimeZone.Today(zone);
+
+        Assert.Equal(TimeSpan.Zero, start.Offset);
+        Assert.Equal(TimeSpan.Zero, end.Offset);
+    }
+
+    /// <summary>
+    /// The window has to span one local calendar day, whatever that day is worth in hours.
+    /// </summary>
+    /// <remarks>
+    /// Adding 24 elapsed hours to the start would be right on most days and an hour off on the
+    /// two that matter: a spring-forward day is 23 hours long and an autumn-back day is 25, so
+    /// the naive window takes an extra hour of the next day or drops the last hour of this one.
+    /// New York is in the list because Sao Paulo has not observed DST since 2019 and so could
+    /// never catch this.
+    /// </remarks>
+    [Theory]
+    [InlineData(SaoPaulo)]
+    [InlineData("UTC")]
+    [InlineData("America/New_York")]
+    public void Janela_do_dia_cobre_um_dia_de_calendario_local(string timeZoneId)
+    {
+        var zone = StoreTimeZone.Resolve(timeZoneId);
+
+        var (start, end) = StoreTimeZone.Today(zone);
+
+        Assert.Equal(TimeSpan.Zero, TimeZoneInfo.ConvertTime(start, zone).TimeOfDay);
+        Assert.Equal(TimeSpan.Zero, TimeZoneInfo.ConvertTime(end, zone).TimeOfDay);
+        Assert.Equal(1, (TimeZoneInfo.ConvertTime(end, zone).Date - TimeZoneInfo.ConvertTime(start, zone).Date).Days);
+    }
+
     private static IConfiguration ConfigFor(string? timeZoneId) =>
         new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { [StoreTimeZone.ConfigurationKey] = timeZoneId })

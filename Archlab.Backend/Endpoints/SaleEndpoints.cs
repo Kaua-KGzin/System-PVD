@@ -23,7 +23,10 @@ public static class SaleEndpoints
         {
             var resolvedPage = page < 1 ? 1 : page;
             var resolvedPageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
-            return Results.Ok(await service.ListAsync(cashSessionId, from, to, resolvedPage, resolvedPageSize, cancellationToken));
+            // ToUniversalTime is load-bearing: these bounds are compared against Sale.CreatedAt,
+            // which is `timestamp with time zone` on PostgreSQL, and Npgsql rejects a
+            // DateTimeOffset parameter carrying a non-zero offset. Same instant, offset zero.
+            return Results.Ok(await service.ListAsync(cashSessionId, from?.ToUniversalTime(), to?.ToUniversalTime(), resolvedPage, resolvedPageSize, cancellationToken));
         })
             .WithName("ListSales");
 

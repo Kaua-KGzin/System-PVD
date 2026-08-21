@@ -19,15 +19,29 @@ public static class DbContextFactory
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
 
+        var db = CreateOn(connection, httpContextAccessor);
+        db.Database.EnsureCreated();
+        return (db, connection);
+    }
+
+    /// <summary>
+    /// Another context over a database that already exists, for tests that need two writers.
+    /// </summary>
+    /// <remarks>
+    /// Each context keeps its own change tracker, so two of them holding the same row is what
+    /// makes an optimistic-concurrency conflict reachable: one commits and moves the row version,
+    /// the other still writes against the value it read.
+    /// </remarks>
+    public static PdvDbContext CreateOn(
+        SqliteConnection connection,
+        IHttpContextAccessor? httpContextAccessor = null)
+    {
         var options = new DbContextOptionsBuilder<PdvDbContext>()
             .UseSqlite(connection)
             .AddInterceptors(new Archlab.Backend.Data.Interceptors.AuditLogInterceptor(httpContextAccessor))
             .Options;
 
-
-        var db = new PdvDbContext(options);
-        db.Database.EnsureCreated();
-        return (db, connection);
+        return new PdvDbContext(options);
     }
 
     public static IConfiguration BuildConfig(
