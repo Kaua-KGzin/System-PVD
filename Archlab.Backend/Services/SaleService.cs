@@ -195,7 +195,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             await transaction.RollbackAsync(cancellationToken);
             return ServiceResult<SaleResponse>.Fail("Conflito de concorrencia ao registrar venda. Tente novamente.", StatusCodes.Status409Conflict);
         }
-        catch (DbUpdateException ex) when (DbConflict.IsRetryable(ex))
+        catch (Exception ex) when (DbConflict.IsRetryable(ex))
         {
             // The RowVersion token catches the race on SQLite. On PostgreSQL the same race is
             // usually decided first by SSI or by the Sale.Number unique index, and arrives here
@@ -273,7 +273,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             await transaction.RollbackAsync(cancellationToken);
             return ServiceResult<SaleResponse>.Fail("Conflito de concorrencia ao cancelar venda. Tente novamente.", StatusCodes.Status409Conflict);
         }
-        catch (DbUpdateException ex) when (DbConflict.IsRetryable(ex))
+        catch (Exception ex) when (DbConflict.IsRetryable(ex))
         {
             logger.LogWarning(ex, "Database conflict during sale cancellation: Id={SaleId}", sale.Id);
             await transaction.RollbackAsync(cancellationToken);

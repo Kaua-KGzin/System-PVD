@@ -141,7 +141,23 @@ public sealed class ProductService(PdvDbContext db)
         product.UpdatedAt = DateTimeOffset.UtcNow;
         product.RowVersion++;
 
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Moving the token above is what makes two simultaneous edits a real conflict rather
+            // than a silent overwrite — so this is now a reachable path, and it answers the way
+            // AdjustStockAsync does instead of falling through to a 500.
+            return ServiceResult<ProductResponse>.Fail(
+                "Este produto foi alterado por outro usuario. Recarregue e tente novamente.", StatusCodes.Status409Conflict);
+        }
+        catch (Exception ex) when (DbConflict.IsRetryable(ex))
+        {
+            return ServiceResult<ProductResponse>.Fail(
+                "Este produto foi alterado por outro usuario. Recarregue e tente novamente.", StatusCodes.Status409Conflict);
+        }
 
         return ServiceResult<ProductResponse>.Ok(ProductResponse.From(product));
     }
@@ -187,7 +203,7 @@ public sealed class ProductService(PdvDbContext db)
             return ServiceResult<ProductResponse>.Fail(
                 "Conflito de concorrencia ao ajustar o estoque. Tente novamente.", StatusCodes.Status409Conflict);
         }
-        catch (DbUpdateException ex) when (DbConflict.IsRetryable(ex))
+        catch (Exception ex) when (DbConflict.IsRetryable(ex))
         {
             await transaction.RollbackAsync(cancellationToken);
             return ServiceResult<ProductResponse>.Fail(

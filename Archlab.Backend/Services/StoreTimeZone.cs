@@ -28,15 +28,26 @@ public static class StoreTimeZone
             : TimeZoneInfo.Utc;
 
     /// <summary>
-    /// The half-open window [Start, End) covering the current day in <paramref name="zone"/>.
+    /// The half-open window [Start, End) covering the current day in <paramref name="zone"/>,
+    /// expressed as UTC instants.
     /// </summary>
+    /// <remarks>
+    /// Returned in UTC on purpose. These bounds are compared against Sale.CreatedAt, which maps to
+    /// `timestamp with time zone` on PostgreSQL, and Npgsql refuses a DateTimeOffset parameter
+    /// whose offset is not zero — so handing back the -03:00 values the calendar arithmetic
+    /// produces would throw before the query ran. Converting keeps the same instants.
+    /// </remarks>
     public static (DateTimeOffset Start, DateTimeOffset End) Today(TimeZoneInfo zone)
     {
-        // Midnight is read as a local time in the zone itself, so GetUtcOffset picks the offset
-        // actually in effect then rather than the one in effect now.
-        var midnight = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, zone).Date;
-        var start = new DateTimeOffset(midnight, zone.GetUtcOffset(midnight));
+        // Both boundaries are read as local times in the zone itself, each with the offset in
+        // effect on its own date: adding 24 elapsed hours to the start would land an hour off
+        // across a DST transition, taking an extra hour in spring and dropping one in autumn.
+        var today = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, zone).Date;
+        var tomorrow = today.AddDays(1);
 
-        return (start, start.AddDays(1));
+        var start = new DateTimeOffset(today, zone.GetUtcOffset(today));
+        var end = new DateTimeOffset(tomorrow, zone.GetUtcOffset(tomorrow));
+
+        return (start.ToUniversalTime(), end.ToUniversalTime());
     }
 }

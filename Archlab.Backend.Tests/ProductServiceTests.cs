@@ -138,6 +138,43 @@ public sealed class ProductServiceTests : IDisposable
     }
 
     /// <summary>
+    /// Two operators editing the same product get an answer they can act on, not a 500.
+    /// </summary>
+    /// <remarks>
+    /// Advancing RowVersion is what turns the second write from a silent overwrite into a real
+    /// conflict — so the moment that stopped being a lost update, it started being an exception
+    /// that someone has to catch. Two contexts over one database is the smallest honest way to
+    /// stage it: each tracks its own copy, so the second still writes the version it read.
+    /// </remarks>
+    [Fact]
+    public async Task Edicao_concorrente_de_produto_responde_409()
+    {
+        await _sut.CreateAsync(new CreateProductRequest("321", null, "Disputado", "UN", 10m, 100, 5), default);
+        var id = (await _db.Products.AsNoTracking().SingleAsync(p => p.Barcode == "321")).Id;
+
+        await using var otherDb = DbContextFactory.CreateOn(_connection);
+        var otherService = new ProductService(otherDb);
+
+        // Both read the row before either writes.
+        await otherDb.Products.SingleAsync(p => p.Id == id);
+        await _db.Products.SingleAsync(p => p.Id == id);
+
+        var first = await _sut.UpdateAsync(
+            id, new UpdateProductRequest("321", null, "Vencedor", "UN", 11m, 5, null, true), default);
+        Assert.True(first.Succeeded);
+
+        var second = await otherService.UpdateAsync(
+            id, new UpdateProductRequest("321", null, "Perdedor", "UN", 12m, 5, null, true), default);
+
+        Assert.False(second.Succeeded);
+        Assert.Equal(409, second.Error!.StatusCode);
+
+        await using var verifyDb = DbContextFactory.CreateOn(_connection);
+        var stored = await verifyDb.Products.AsNoTracking().SingleAsync(p => p.Id == id);
+        Assert.Equal("Vencedor", stored.Name);
+    }
+
+    /// <summary>
     /// An operator types "arroz", not "Arroz". The search must not care.
     /// </summary>
     /// <remarks>
