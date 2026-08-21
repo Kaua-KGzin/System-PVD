@@ -23,22 +23,21 @@ export default function CustomersPage() {
   })
 
   const saveMutation = useMutation({
-    mutationFn: () => {
-      if (editing) {
-        return api.put(`/customers/${editing.id}`, {
-          name: form.name,
-          document: form.document || null,
-          phone: form.phone || null,
-          email: form.email || null,
-          isActive,
-        })
-      }
-      return api.post('/customers', {
+    // Awaited rather than returned: create and update send different bodies (only the update
+    // contract carries isActive), and returning both responses makes the mutation's type the
+    // union of two AxiosResponse request-body shapes. Nothing here reads the response.
+    mutationFn: async () => {
+      const body = {
         name: form.name,
         document: form.document || null,
         phone: form.phone || null,
         email: form.email || null,
-      })
+      }
+      if (editing) {
+        await api.put(`/customers/${editing.id}`, { ...body, isActive })
+        return
+      }
+      await api.post('/customers', body)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['customers'] })
