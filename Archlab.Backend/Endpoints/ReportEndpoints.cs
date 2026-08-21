@@ -10,13 +10,14 @@ public static class ReportEndpoints
         var group = app.MapGroup("/api/reports").RequireAuthorization();
 
         group.MapGet("/sales-summary", async (
+            ReportService reportService,
+            IConfiguration configuration,
             DateTimeOffset? from,
             DateTimeOffset? to,
             string? terminalId,
-            ReportService reportService,
             CancellationToken ct) =>
         {
-            var resolvedFrom = from ?? DateTimeOffset.UtcNow.Date;
+            var resolvedFrom = from ?? StoreToday(configuration);
             var resolvedTo = to ?? DateTimeOffset.UtcNow;
             var result = await reportService.GetSalesSummaryAsync(resolvedFrom, resolvedTo, terminalId, ct);
             return Results.Ok(result);
@@ -39,14 +40,18 @@ public static class ReportEndpoints
             return result.ToHttpResult();
         });
 
+        // page/pageSize/limit carry defaults for the same reason the sales list does: a
+        // non-nullable int with no default is a *required* query parameter to model binding, so
+        // GET /api/reports/inventory-movements — the call the README documents — answered 400
+        // until the caller guessed that it had to paginate explicitly.
         group.MapGet("/inventory-movements", async (
+            ReportService reportService,
             Guid? productId,
             DateTimeOffset? from,
             DateTimeOffset? to,
-            int page,
-            int pageSize,
-            ReportService reportService,
-            CancellationToken ct) =>
+            int page = 1,
+            int pageSize = 20,
+            CancellationToken ct = default) =>
         {
             var resolvedPage = page < 1 ? 1 : page;
             var resolvedPageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
@@ -56,13 +61,14 @@ public static class ReportEndpoints
         });
 
         group.MapGet("/top-products", async (
+            ReportService reportService,
+            IConfiguration configuration,
             DateTimeOffset? from,
             DateTimeOffset? to,
-            int limit,
-            ReportService reportService,
-            CancellationToken ct) =>
+            int limit = 10,
+            CancellationToken ct = default) =>
         {
-            var resolvedFrom = from ?? DateTimeOffset.UtcNow.Date;
+            var resolvedFrom = from ?? StoreToday(configuration);
             var resolvedTo = to ?? DateTimeOffset.UtcNow;
             var resolvedLimit = limit is < 1 or > 50 ? 10 : limit;
             return Results.Ok(await reportService.GetTopProductsAsync(resolvedFrom, resolvedTo, resolvedLimit, ct));
@@ -79,4 +85,15 @@ public static class ReportEndpoints
             return Results.Ok(await reportService.GetRevenueByDayAsync(resolvedFrom, resolvedTo, ct));
         });
     }
+
+    /// <summary>
+    /// Midnight today in the store's timezone, the default lower bound of a report window.
+    /// </summary>
+    /// <remarks>
+    /// DateTimeOffset.UtcNow.Date drops to a DateTime with an unspecified kind, and the implicit
+    /// conversion back stamps it with the *host's* offset — so an unfiltered report covered a day
+    /// that moved with the machine. It now covers the same day the figures are grouped into.
+    /// </remarks>
+    private static DateTimeOffset StoreToday(IConfiguration configuration) =>
+        StoreTimeZone.Today(StoreTimeZone.Resolve(configuration)).Start;
 }
