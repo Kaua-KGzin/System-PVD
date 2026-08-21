@@ -21,18 +21,16 @@ export default function CategoriesPage() {
   })
 
   const saveMutation = useMutation({
-    mutationFn: () => {
+    // Awaited rather than returned: create and update send different bodies (only the update
+    // contract carries isActive), and returning both responses makes the mutation's type the
+    // union of two AxiosResponse request-body shapes. Nothing here reads the response.
+    mutationFn: async () => {
+      const body = { name: form.name, description: form.description || null }
       if (editing) {
-        return api.put(`/categories/${editing.id}`, {
-          name: form.name,
-          description: form.description || null,
-          isActive,
-        })
+        await api.put(`/categories/${editing.id}`, { ...body, isActive })
+        return
       }
-      return api.post('/categories', {
-        name: form.name,
-        description: form.description || null,
-      })
+      await api.post('/categories', body)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categories'] })

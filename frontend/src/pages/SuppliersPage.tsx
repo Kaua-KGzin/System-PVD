@@ -18,7 +18,10 @@ export default function SuppliersPage() {
   })
 
   const saveMutation = useMutation({
-    mutationFn: () => {
+    // Awaited rather than returned: create and update send different bodies (only the update
+    // contract carries isActive), and returning both responses makes the mutation's type the
+    // union of two AxiosResponse request-body shapes. Nothing here reads the response.
+    mutationFn: async () => {
       const body = {
         name: form.name,
         cnpj: form.cnpj || null,
@@ -26,9 +29,11 @@ export default function SuppliersPage() {
         phone: form.phone || null,
         email: form.email || null,
       }
-      return editing
-        ? api.put(`/suppliers/${editing.id}`, { ...body, isActive: true })
-        : api.post('/suppliers', body)
+      if (editing) {
+        await api.put(`/suppliers/${editing.id}`, { ...body, isActive: true })
+        return
+      }
+      await api.post('/suppliers', body)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['suppliers'] })

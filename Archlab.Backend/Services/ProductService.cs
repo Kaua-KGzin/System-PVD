@@ -26,11 +26,15 @@ public sealed class ProductService(PdvDbContext db)
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
+            // Contains translates to LIKE, which SQLite matches case-insensitively for ASCII but
+            // PostgreSQL does not. Left alone, searching "arroz" finds "Arroz Tipo 1" in dev and
+            // nothing in production. Lowering both sides translates to lower() on both providers,
+            // and costs no index: a leading-wildcard LIKE could never use one anyway.
+            var term = search.Trim().ToLowerInvariant();
             query = query.Where(product =>
-                product.Barcode.Contains(term) ||
-                product.Name.Contains(term) ||
-                (product.Sku != null && product.Sku.Contains(term)));
+                product.Barcode.ToLower().Contains(term) ||
+                product.Name.ToLower().Contains(term) ||
+                (product.Sku != null && product.Sku.ToLower().Contains(term)));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -135,6 +139,7 @@ public sealed class ProductService(PdvDbContext db)
         product.CategoryId = request.CategoryId;
         product.IsActive = request.IsActive;
         product.UpdatedAt = DateTimeOffset.UtcNow;
+        product.RowVersion++;
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -158,6 +163,10 @@ public sealed class ProductService(PdvDbContext db)
 
         product.StockQuantity = newStock;
         product.UpdatedAt = DateTimeOffset.UtcNow;
+        // Without this the concurrency token never moves, so a sale that read the product before
+        // this adjustment still matches on WHERE RowVersion = @original and writes its own stock
+        // figure over the adjustment — a lost update that shows up as inventory that drifts.
+        product.RowVersion++;
 
         db.InventoryMovements.Add(new InventoryMovement
         {
@@ -167,8 +176,23 @@ public sealed class ProductService(PdvDbContext db)
             Notes = string.IsNullOrWhiteSpace(request.Reason) ? "Ajuste manual de estoque" : request.Reason.Trim()
         });
 
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return ServiceResult<ProductResponse>.Fail(
+                "Conflito de concorrencia ao ajustar o estoque. Tente novamente.", StatusCodes.Status409Conflict);
+        }
+        catch (DbUpdateException ex) when (DbConflict.IsRetryable(ex))
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return ServiceResult<ProductResponse>.Fail(
+                "Conflito de concorrencia ao ajustar o estoque. Tente novamente.", StatusCodes.Status409Conflict);
+        }
 
         return ServiceResult<ProductResponse>.Ok(ProductResponse.From(product));
     }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Archlab.Backend.Contracts;
 using Archlab.Backend.Data;
 using Archlab.Backend.Domain;
+using Archlab.Backend.Services;
 
 namespace Archlab.Backend.Endpoints;
 
@@ -11,10 +12,13 @@ public static class DashboardEndpoints
     {
         app.MapGet("/api/dashboard", async (
             PdvDbContext db,
+            IConfiguration configuration,
             CancellationToken ct) =>
         {
-            var todayStart = new DateTimeOffset(DateTime.Today);
-            var todayEnd = todayStart.AddDays(1);
+            // DateTime.Today is the *host's* midnight, so "vendas de hoje" — the first number on
+            // the first screen — was counted over a UTC day in the container. The store's day is
+            // the one the operator means.
+            var (todayStart, todayEnd) = StoreTimeZone.Today(StoreTimeZone.Resolve(configuration));
 
             var todaySalesTask = GetTodaySalesAsync(db, todayStart, todayEnd, ct);
             var openSessionsTask = GetOpenSessionsCountAsync(db, ct);

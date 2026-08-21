@@ -32,7 +32,7 @@
 | Dashboard · Relatórios · Alertas de estoque | ✅ |
 | CashRegister (abertura/fechamento de caixa) | ✅ |
 | FiscalDocument (simulação NFC-e) | ✅ |
-| Testes xUnit — 65 testes (SQLite in-memory) | ✅ |
+| Testes xUnit (SQLite in-memory, sem dependências externas) | ✅ |
 | Docker + docker-compose (PostgreSQL 17) | ✅ |
 | GitHub Actions CI (build + test + docker build) | ✅ |
 | Frontend React 19 — 9 páginas | ✅ |
@@ -101,8 +101,13 @@ O Vite faz proxy `/api → http://localhost:5235` automaticamente.
 ### 4. Testes
 ```bash
 dotnet test Archlab.Backend.Tests
-# → 65/65 passando (SQLite in-memory, sem dependências externas)
+# SQLite in-memory — sem Docker, sem PostgreSQL, sem rede
 ```
+
+> Os testes de concorrência e de busca rodam sobre SQLite, que serializa escritas por conta
+> própria e cuja cláusula `LIKE` já ignora maiúsculas. Eles provam a lógica sob interleaving,
+> não o comportamento sob contenção real no PostgreSQL — as linhas `[InlineData("PostgreSQL")]`
+> em `SaleConcurrencyTests` existem para serem ligadas quando houver uma instância disponível.
 
 ---
 
@@ -193,6 +198,23 @@ ARCHNEXUS/
 ├── .env.example                 # Variáveis de ambiente necessárias
 └── ARCHlab.slnx                 # Solution
 ```
+
+---
+
+## ⚙️ Configuração
+
+Além das variáveis de `.env.example`, uma chave merece atenção:
+
+| Chave | Env var | Default | Para que serve |
+|-------|---------|---------|----------------|
+| `Reports:TimeZone` | `Reports__TimeZone` | `America/Sao_Paulo` | Fuso da loja, em id IANA. |
+
+Relatórios de receita por dia, vendas por hora e o card "vendas de hoje" do dashboard colapsam
+um instante em um dia de calendário ou em uma hora — e isso só significa alguma coisa no fuso em
+que a loja fecha o caixa. O contêiner não tem fuso configurado (roda em UTC), então **sem essa
+chave uma venda das 21h em São Paulo é contabilizada no dia seguinte**. Se o id não for
+reconhecido pelo host, o fallback é UTC — nunca o fuso da máquina, que faria o mesmo dado
+produzir números diferentes em produção e na máquina do dev.
 
 ---
 

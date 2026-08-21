@@ -5,8 +5,24 @@ using Archlab.Backend.Domain;
 
 namespace Archlab.Backend.Services;
 
-public sealed class ReportService(PdvDbContext db)
+public sealed class ReportService(PdvDbContext db, IConfiguration? configuration = null)
 {
+    /// <summary>
+    /// The store's own timezone, used wherever a report collapses an instant into a calendar day
+    /// or an hour of the day.
+    /// </summary>
+    /// <remarks>
+    /// Those two groupings only mean something in the timezone the store keeps its books in, and
+    /// reading the host's local zone made the answer depend on where the process happened to run:
+    /// the same sales produce one revenue-by-day on a developer's machine and another in the
+    /// container, which has no timezone configured and is therefore UTC. In UTC a sale rung up at
+    /// 21:00 in Sao Paulo is booked to the following day — so the closing figures for a Monday
+    /// silently include Sunday evening and drop Monday evening. The zone is now configuration
+    /// (Reports:TimeZone, shipped as America/Sao_Paulo in appsettings.json), and falls back to
+    /// UTC when it is unset or when the host cannot resolve the id — never to the host's own.
+    /// </remarks>
+    private readonly TimeZoneInfo _reportTimeZone = StoreTimeZone.Resolve(configuration);
+
     public async Task<SalesSummaryResponse> GetSalesSummaryAsync(
         DateTimeOffset from,
         DateTimeOffset to,
@@ -81,7 +97,7 @@ public sealed class ReportService(PdvDbContext db)
             .ToArrayAsync(ct);
     }
 
-    private static async Task<SalesByHourEntry[]> GetByHourAsync(
+    private async Task<SalesByHourEntry[]> GetByHourAsync(
         IQueryable<Sale> query, CancellationToken ct)
     {
         // Hour extraction must be client-side because EF provider support varies.
@@ -91,7 +107,7 @@ public sealed class ReportService(PdvDbContext db)
             .ToArrayAsync(ct);
 
         return [.. sales
-            .GroupBy(s => s.CreatedAt.ToLocalTime().Hour)
+            .GroupBy(s => TimeZoneInfo.ConvertTime(s.CreatedAt, _reportTimeZone).Hour)
             .Select(g => new SalesByHourEntry(g.Key, g.Count(), g.Sum(s => s.NetTotal)))
             .OrderBy(e => e.Hour)];
     }
@@ -250,7 +266,7 @@ public sealed class ReportService(PdvDbContext db)
             .ToArrayAsync(cancellationToken);
 
         return [.. sales
-            .GroupBy(s => DateOnly.FromDateTime(s.CreatedAt.ToLocalTime().DateTime))
+            .GroupBy(s => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(s.CreatedAt, _reportTimeZone).DateTime))
             .Select(g => new RevenueByDayEntry(
                 g.Key,
                 g.Count(),
