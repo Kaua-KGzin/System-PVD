@@ -101,8 +101,21 @@ public sealed class CashRegisterService(PdvDbContext db)
         };
 
         db.CashSessions.Add(session);
-        await db.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (DbConflict.IsRetryable(ex))
+        {
+            // "One open session per terminal" is held by the read above inside a Serializable
+            // transaction, not by a unique index. On PostgreSQL two simultaneous openings both
+            // pass that read and one is aborted at commit — which is the same answer the read
+            // gives, so it gets the same message rather than a 500.
+            await transaction.RollbackAsync(cancellationToken);
+            return ServiceResult<CashSessionResponse>.Fail("Este terminal ja possui um caixa aberto.", StatusCodes.Status409Conflict);
+        }
 
         return ServiceResult<CashSessionResponse>.Ok(CashSessionResponse.From(session, session.OpeningAmount));
     }
@@ -136,6 +149,11 @@ public sealed class CashRegisterService(PdvDbContext db)
             await transaction.CommitAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return ServiceResult<CashSessionResponse>.Fail("Conflito de concorrencia ao fechar o caixa. Tente novamente.", StatusCodes.Status409Conflict);
+        }
+        catch (DbUpdateException ex) when (DbConflict.IsRetryable(ex))
         {
             await transaction.RollbackAsync(cancellationToken);
             return ServiceResult<CashSessionResponse>.Fail("Conflito de concorrencia ao fechar o caixa. Tente novamente.", StatusCodes.Status409Conflict);

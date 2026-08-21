@@ -13,7 +13,12 @@ public sealed class SupplierService(PdvDbContext db)
         var query = db.Suppliers.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(s => s.Name.Contains(search) || (s.Cnpj != null && s.Cnpj.Contains(search)));
+        {
+            // Lowered on both sides so the match does not depend on the provider: LIKE is
+            // case-insensitive on SQLite and case-sensitive on PostgreSQL.
+            var term = search.Trim().ToLowerInvariant();
+            query = query.Where(s => s.Name.ToLower().Contains(term) || (s.Cnpj != null && s.Cnpj.ToLower().Contains(term)));
+        }
 
         if (isActive.HasValue)
             query = query.Where(s => s.IsActive == isActive.Value);

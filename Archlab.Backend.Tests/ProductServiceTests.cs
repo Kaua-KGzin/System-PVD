@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Archlab.Backend.Contracts;
 using Archlab.Backend.Domain;
 using Archlab.Backend.Services;
@@ -94,5 +95,69 @@ public sealed class ProductServiceTests : IDisposable
         var result = await _sut.AdjustStockAsync(byBarcode.Value!.Id, new AdjustStockRequest(-100, "Erro"), default);
 
         Assert.False(result.Succeeded);
+    }
+
+    /// <summary>
+    /// Product.RowVersion is the concurrency token every writer of a product is checked against.
+    /// A write that changes the stock but leaves the token where it was is invisible to the next
+    /// writer: a sale that read the product first still matches on WHERE RowVersion = @original
+    /// and overwrites the adjustment with its own figure. Whoever moves the stock moves the token.
+    /// </summary>
+    [Fact]
+    public async Task AjusteDeEstoque_avanca_o_token_de_concorrencia()
+    {
+        const string barcode = "777";
+        await _sut.CreateAsync(new CreateProductRequest(barcode, null, "Produto Z", "UN", 10m, 100, 5), default);
+        var product = await _db.Products.SingleAsync(p => p.Barcode == barcode);
+        var before = product.RowVersion;
+
+        var result = await _sut.AdjustStockAsync(product.Id, new AdjustStockRequest(25, "Conferencia"), default);
+        Assert.True(result.Succeeded);
+
+        var after = await _db.Products.AsNoTracking().SingleAsync(p => p.Barcode == barcode);
+        Assert.Equal(125, after.StockQuantity);
+        Assert.NotEqual(before, after.RowVersion);
+    }
+
+    [Fact]
+    public async Task Edicao_de_produto_avanca_o_token_de_concorrencia()
+    {
+        await _sut.CreateAsync(new CreateProductRequest("888", null, "Nome Antigo", "UN", 10m, 100, 5), default);
+        var product = await _db.Products.SingleAsync(p => p.Barcode == "888");
+        var before = product.RowVersion;
+
+        var result = await _sut.UpdateAsync(
+            product.Id,
+            new UpdateProductRequest("888", null, "Nome Novo", "UN", 12m, 5, null, true),
+            default);
+        Assert.True(result.Succeeded);
+
+        var after = await _db.Products.AsNoTracking().SingleAsync(p => p.Barcode == "888");
+        Assert.Equal("Nome Novo", after.Name);
+        Assert.NotEqual(before, after.RowVersion);
+    }
+
+    /// <summary>
+    /// An operator types "arroz", not "Arroz". The search must not care.
+    /// </summary>
+    /// <remarks>
+    /// This runs on SQLite, whose LIKE is already case-insensitive for ASCII — so it passed
+    /// before the query started lowering both sides, and passes after. It is here to pin the
+    /// behaviour for PostgreSQL, where LIKE is case-sensitive and the un-normalized query
+    /// returned nothing. Same shape as the note in SaleConcurrencyTests: the assertion that
+    /// matters for production needs the Postgres provider to actually run it.
+    /// </remarks>
+    [Theory]
+    [InlineData("arroz")]
+    [InlineData("ARROZ")]
+    [InlineData("ArRoZ")]
+    public async Task Busca_de_produto_ignora_maiusculas(string term)
+    {
+        await _sut.CreateAsync(new CreateProductRequest("999", null, "Arroz Tipo 1 5kg", "UN", 24.90m, 50, 5), default);
+
+        var result = await _sut.SearchAsync(term, false, null, 1, 20, default);
+
+        Assert.Single(result.Items);
+        Assert.Equal("Arroz Tipo 1 5kg", result.Items[0].Name);
     }
 }
