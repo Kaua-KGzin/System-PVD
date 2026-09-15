@@ -5,6 +5,7 @@ namespace Archlab.Backend.Contracts;
 public sealed record CreateSaleRequest(
     Guid CashSessionId,
     string OperatorName,
+    Guid? UserId,
     string? CustomerDocument,
     Guid? CustomerId,
     decimal SaleDiscountTotal,
@@ -106,4 +107,53 @@ public sealed record SalePaymentResponse(
 {
     public static SalePaymentResponse From(SalePayment payment) =>
         new(payment.Id, payment.Method, payment.Amount, payment.TransactionReference);
+}
+
+public sealed record CreateSaleReturnRequest(
+    string Reason,
+    string OperatorName,
+    IReadOnlyList<CreateSaleReturnItemRequest> Items);
+
+public sealed record CreateSaleReturnItemRequest(
+    Guid ProductId,
+    decimal Quantity);
+
+public sealed record SaleReturnResponse(
+    Guid Id,
+    Guid SaleId,
+    string Reason,
+    string OperatorName,
+    decimal TotalRefundAmount,
+    DateTimeOffset ReturnedAt,
+    IReadOnlyList<SaleReturnItemResponse> Items)
+{
+    public static SaleReturnResponse From(SaleReturn ret) =>
+        new(
+            ret.Id,
+            ret.SaleId,
+            ret.Reason,
+            ret.OperatorName,
+            ret.TotalRefundAmount,
+            ret.ReturnedAt,
+            ret.Items.Select(SaleReturnItemResponse.From).ToArray());
+}
+
+public sealed record SaleReturnItemResponse(
+    Guid Id,
+    Guid ProductId,
+    string Barcode,
+    string ProductName,
+    decimal Quantity,
+    decimal UnitPrice,
+    decimal RefundAmount)
+{
+    public static SaleReturnItemResponse From(SaleReturnItem item) =>
+        new(
+            item.Id,
+            item.ProductId,
+            item.Barcode,
+            item.ProductName,
+            item.Quantity,
+            item.UnitPrice,
+            item.RefundAmount);
 }

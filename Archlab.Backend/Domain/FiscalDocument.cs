@@ -10,6 +10,8 @@ public sealed class FiscalDocument
     public int Number { get; set; }
     public required string AccessKey { get; set; }
     public FiscalDocumentStatus Status { get; set; } = FiscalDocumentStatus.Issued;
+    public bool IsContingency { get; set; }
+    public string? Protocol { get; set; }
     public DateTimeOffset IssuedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? CancelledAt { get; set; }
     public string? XmlPayload { get; set; }

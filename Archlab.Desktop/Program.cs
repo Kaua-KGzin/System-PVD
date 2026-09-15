@@ -15,7 +15,7 @@ namespace Archlab.Desktop;
 
 internal static class Program
 {
-    /// <summary>Per-user state: the SQLite database and the JWT signing key.</summary>
+    /// <summary>Per-user state: the JWT signing key.</summary>
     internal static string DataDirectory { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "ARCHNEXUS");
@@ -44,24 +44,6 @@ internal static class Program
     {
         Directory.CreateDirectory(DataDirectory);
 
-        var databasePath = Path.Combine(DataDirectory, "archlab.db");
-        var isFirstRun = !File.Exists(databasePath);
-
-        string? adminUsername = null;
-        string? adminPassword = null;
-
-        if (isFirstRun)
-        {
-            using var setup = new FirstRunForm();
-            if (setup.ShowDialog() != DialogResult.OK)
-            {
-                return 0;
-            }
-
-            adminUsername = setup.Username;
-            adminPassword = setup.Password;
-        }
-
         var port = FindFreePort();
         var baseUrl = $"http://127.0.0.1:{port}";
 
@@ -73,20 +55,16 @@ internal static class Program
 
         var settings = new Dictionary<string, string?>
         {
-            ["DatabaseProvider"] = "Sqlite",
-            ["ConnectionStrings:DefaultConnection"] = $"Data Source={databasePath}",
+            ["DatabaseProvider"] = "PostgreSQL",
+            ["ConnectionStrings:DefaultConnection"] = "Host=localhost;Port=5432;Database=ArchNexus;Username=kgzin;Password=KGzin123",
             ["Jwt:SecretKey"] = LoadOrCreateSigningKey(),
             ["Jwt:Issuer"] = "archlab-desktop",
             ["Jwt:Audience"] = "archlab-desktop",
-            ["Jwt:ExpirationHours"] = "8"
+            ["Jwt:ExpirationHours"] = "8",
+            ["SeedAdmin:Username"] = "KGzin",
+            ["SeedAdmin:Password"] = "KGzin123",
+            ["SeedAdmin:Role"] = "Admin"
         };
-
-        if (adminUsername is not null)
-        {
-            settings["SeedAdmin:Username"] = adminUsername;
-            settings["SeedAdmin:Password"] = adminPassword;
-            settings["SeedAdmin:Role"] = "Admin";
-        }
 
         builder.Configuration.AddInMemoryCollection(settings);
         builder.WebHost.UseUrls(baseUrl);

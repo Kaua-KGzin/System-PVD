@@ -58,6 +58,20 @@ public static class CashRegisterEndpoints
             .WithName("CloseCashSession")
             .WithValidation<CloseCashSessionRequest>();
 
+        group.MapPost("/{id:guid}/movements", async (
+            Guid id,
+            CreateCashMovementRequest request,
+            CashRegisterService service,
+            CancellationToken cancellationToken) =>
+            (await service.AddMovementAsync(id, request, cancellationToken)).ToHttpResult())
+            .WithName("AddCashMovement");
+
+        group.MapGet("/{id:guid}/movements", async (
+            Guid id,
+            CashRegisterService service,
+            CancellationToken cancellationToken) =>
+            Results.Ok(await service.ListMovementsAsync(id, cancellationToken)))
+            .WithName("ListCashMovements");
 
         return app;
     }

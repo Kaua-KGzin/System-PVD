@@ -17,4 +17,5 @@ public sealed class CashSession
 
 
     public List<Sale> Sales { get; set; } = [];
+    public List<CashMovement> Movements { get; set; } = [];
 }

@@ -1,215 +1,142 @@
 <div align="center">
 
-<img src="assets/archnexus-logo.png" alt="ARCHNEXUS" width="180" />
+<img src="assets/archnexus-logo.png" alt="ARCHNEXUS" width="220" />
 
 # ARCHNEXUS — Sistema de Gestão Comercial
 
-**ERP / Ponto de Venda — Backend .NET 10 · React 19 · PostgreSQL · App desktop Windows**
+**ERP & Ponto de Venda (PDV) Premium**  
+*Backend .NET 10 · React 19 · PostgreSQL · App Desktop Windows*
 
-[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet)](https://dotnet.microsoft.com/)
-[![EF Core](https://img.shields.io/badge/EF_Core-10-7B68EE?style=for-the-badge)](https://learn.microsoft.com/ef/core/)
+[![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet)](https://dotnet.microsoft.com/)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker)](https://www.docker.com/)
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions)](https://github.com/features/actions)
+
+O **ARCHNEXUS** é uma solução completa e escalável para automação comercial. Desenvolvido com foco na experiência do usuário e performance, ele oferece um PDV rápido, gestão de estoque inteligente e um dashboard financeiro rico, tudo envolvido em uma interface de usuário moderna estilo *Glassmorphism*.
+
+[🚀 Acessar Demonstração Web](#-rodar-localmente) · [📦 Download Desktop](#) · [📖 Documentação (Scalar)](#-endpoints)
 
 </div>
 
 ---
 
-## 🚦 Status
+## ✨ Principais Funcionalidades
 
-| Área | Status |
-|------|--------|
-| Backend — Domain model (15 entidades) | ✅ |
-| JWT Auth + Refresh Tokens + RBAC | ✅ |
-| EF Core Migrations (PostgreSQL) | ✅ |
-| Race condition `Sale.Number` (lock serializable) | ✅ |
-| Multi-pagamento + troco + cancelamento | ✅ |
-| Estoque + InventoryMovement log | ✅ |
-| Category · Customer · Supplier · PurchaseEntry | ✅ |
-| Dashboard · Relatórios · Alertas de estoque | ✅ |
-| CashRegister (abertura/fechamento de caixa) | ✅ |
-| FiscalDocument (simulação NFC-e) | ✅ |
-| Testes xUnit — 65 testes (SQLite in-memory) | ✅ |
-| Docker + docker-compose (PostgreSQL 17) | ✅ |
-| GitHub Actions CI (build + test + docker build) | ✅ |
-| Frontend React 19 — 9 páginas | ✅ |
-| PostgreSQL como banco de produção | ✅ |
-| Deploy em produção | 🔴 Próximo |
+- **🛒 PDV Ágil:** Interface focada em produtividade. Suporte a múltiplos pagamentos, cálculo automático de troco e cancelamento de vendas com estorno de estoque em tempo real.
+- **📦 Gestão de Estoque:** Controle de produtos por SKU/Código de barras, níveis mínimos de estoque, alertas automáticos e logs detalhados de movimentação (`InventoryMovement`).
+- **📊 Dashboard Premium:** Gráficos interativos com vendas retroativas, resumo financeiro, top produtos e KPIs cruciais para a tomada de decisão.
+- **🔒 Segurança & Auth:** Autenticação via JWT Bearer com Refresh Tokens rotativos, senhas usando BCrypt (work factor 11), controle de acesso baseado em Roles (RBAC) e Rate Limiting.
+- **🖥️ Multi-Plataforma:** Acesse via WebApp (Navegador) ou através do nosso executável nativo Windows otimizado.
 
 ---
 
-## 🧱 Stack
+## 🚦 Status de Desenvolvimento
 
-| Camada | Tecnologias |
-|--------|-------------|
-| **Backend** | C# · ASP.NET Core 10 Minimal APIs · EF Core 10 · BCrypt.Net |
-| **Auth** | JWT Bearer · Refresh Tokens · Role-based Authorization |
-| **Banco (dev/prod)** | PostgreSQL 17 via Npgsql · SQLite (testes in-memory) |
-| **Frontend** | React 19 · TypeScript · Vite · React Query · Zustand · React Router · Axios |
-| **Infra** | Docker · docker-compose · GitHub Actions CI |
-| **Docs** | OpenAPI (Scalar UI) · Health Checks · Rate Limiting |
+| Módulo / Feature | Status |
+|------------------|:------:|
+| Modelagem de Domínio (15 entidades) | ✅ |
+| Autenticação (JWT + Refresh + RBAC) | ✅ |
+| Frente de Caixa (Vendas, Troco, Locks) | ✅ |
+| Estoque, Categorias & Fornecedores | ✅ |
+| Relatórios & Dashboard Analítico | ✅ |
+| UI/UX Premium (Glassmorphism & Animações) | ✅ |
+| Testes Automatizados (xUnit) | ✅ |
+| Docker & CI/CD (GitHub Actions) | ✅ |
 
 ---
 
-## 🚀 Rodar localmente
+## 🧱 Stack Tecnológica
 
-### Pré-requisitos
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Node.js 20+](https://nodejs.org/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+<details>
+<summary><b>Backend (C# / ASP.NET Core)</b></summary>
+<br>
 
-### 1. PostgreSQL via Docker
+- **Framework:** ASP.NET Core 10 (Minimal APIs)
+- **ORM:** Entity Framework Core 10
+- **Bancos:** PostgreSQL (Produção/Default) com fallback automático para SQLite (Desenvolvimento/Demonstração)
+- **Segurança:** BCrypt.Net, JWT Bearer
+- **Testes:** xUnit, SQLite in-memory
+
+</details>
+
+<details>
+<summary><b>Frontend (React / TypeScript)</b></summary>
+<br>
+
+- **Core:** React 19 + TypeScript + Vite
+- **Estado & Fetching:** Zustand (Global) + React Query + Axios
+- **Roteamento:** React Router DOM
+- **Estilização:** CSS Custom Properties + UI Moderna (Inter Font, Animações Suaves, Glassmorphism)
+
+</details>
+
+---
+
+## 🚀 Como Rodar o Projeto
+
+O projeto foi configurado para ser o mais simples possível de iniciar. 
+
+### Opção 1: Via Docker (Recomendado para Avaliação)
+
+A maneira mais fácil de subir toda a stack (Banco, Backend e Frontend) de uma só vez usando nosso `docker-compose.prod.yml`:
+
 ```bash
-# Dev local (porta 5433 — evita conflito com PostgreSQL nativo no Windows)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up db -d
+# 1. Clone o repositório
+git clone https://github.com/Kaua-KGzin/System-PVD.git
+cd System-PVD
 
-# Verificar que está pronto:
-docker compose exec db pg_isready -U archlab
+# 2. Suba a aplicação (fará o build multi-stage automaticamente)
+docker compose -f docker-compose.prod.yml up --build -d
 ```
+> Acesse: **http://localhost:8080**
+> 
+> *Dica: O banco já é populado automaticamente com produtos, categorias e 30 dias de histórico de vendas na primeira execução! Basta clicar no botão "Acessar Demo" na tela de login.*
 
-### 2. Backend
+### Opção 2: Desenvolvimento Local
+
+Se você quer rodar para desenvolver ou testar:
+
+**1. Pré-requisitos:** .NET 10 SDK, Node.js 20+
+
+**2. Backend:**
 ```bash
 cd Archlab.Backend
-
-# SQLite (mais simples, sem Docker):
-dotnet run
-
-# PostgreSQL (com Docker acima):
-$env:DatabaseProvider="PostgreSQL"
-$env:ConnectionStrings__DefaultConnection="Host=localhost;Port=5433;Database=archlab;Username=archlab;Password=archlab_dev_password"
 dotnet run
 ```
+*(Se não houver PostgreSQL na máquina, ele usará SQLite localmente de forma transparente).*
 
-API disponível em `http://localhost:5235`  
-OpenAPI: `http://localhost:5235/openapi/v1.json`  
-Health: `http://localhost:5235/health`
-
-Login padrão (dev): `admin` / `admin123`
-
-### 3. Frontend
+**3. Frontend:**
 ```bash
 cd frontend
 npm install
-npm run dev   # http://localhost:5173
+npm run dev
 ```
-
-O Vite faz proxy `/api → http://localhost:5235` automaticamente.
-
-### 4. Testes
-```bash
-dotnet test Archlab.Backend.Tests
-# → 65/65 passando (SQLite in-memory, sem dependências externas)
-```
+*(Acesse `http://localhost:5173` - o Vite já faz proxy automático para a API).*
 
 ---
 
-## 📡 Endpoints
+## 📡 Endpoints (Visão Geral)
 
-### Auth
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/api/auth/login` | Login → JWT + Refresh Token |
-| `POST` | `/api/auth/refresh` | Renovar JWT |
-| `POST` | `/api/auth/logout` | Revogar Refresh Token |
+A documentação completa da API (OpenAPI) fica disponível em `/openapi/v1.json` e pode ser visualizada via Scalar UI na raiz quando em modo Development. Algumas rotas principais:
 
-### Produtos / Categorias
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/products` | Listar paginado (`search`, `categoryId`, `lowStock`) |
-| `POST` | `/api/products` | Criar |
-| `PUT` | `/api/products/{id}` | Atualizar |
-| `GET` | `/api/products/barcode/{barcode}` | Buscar por código |
-| `POST` | `/api/products/{id}/stock-adjustments` | Ajuste manual |
-| `GET` | `/api/categories` | Listar categorias |
-| `POST` | `/api/categories` | Criar categoria |
-| `PUT` | `/api/categories/{id}` | Atualizar categoria |
-
-### Clientes / Fornecedores
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/customers` | Listar paginado (`search`) |
-| `POST` | `/api/customers` | Criar |
-| `PUT` | `/api/customers/{id}` | Atualizar |
-| `GET` | `/api/suppliers` | Listar paginado |
-| `POST` | `/api/suppliers` | Criar |
-| `PUT` | `/api/suppliers/{id}` | Atualizar |
-| `POST` | `/api/purchase-entries` | Entrada de estoque |
-
-### Caixa / Vendas
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/api/cash-sessions` | Abrir caixa |
-| `GET` | `/api/cash-sessions/open/{terminalId}` | Caixa aberto |
-| `POST` | `/api/cash-sessions/{id}/close` | Fechar caixa |
-| `POST` | `/api/sales` | Registrar venda |
-| `GET` | `/api/sales` | Histórico paginado |
-| `GET` | `/api/sales/{id}` | Detalhe |
-| `POST` | `/api/sales/{id}/cancel` | Cancelar (estorna estoque) |
-
-### Relatórios / Dashboard
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/dashboard` | KPIs (vendas, estoque, caixas) |
-| `GET` | `/api/reports/sales-summary` | Resumo por período |
-| `GET` | `/api/reports/stock-alerts` | Produtos abaixo do mínimo |
-| `GET` | `/api/reports/top-products` | Produtos mais vendidos |
-| `GET` | `/api/reports/revenue-by-day` | Receita por dia |
-| `GET` | `/api/reports/inventory-movements` | Movimentações de estoque |
-| `GET` | `/api/reports/cash-session-summary/{id}` | Fechamento de caixa |
-
-### Infra
-| Método | Rota |
-|--------|------|
-| `GET` | `/health` |
-| `GET` | `/openapi/v1.json` |
+- `POST /api/auth/login` — Autenticação e JWT
+- `GET /api/products` — Catálogo (suporta `search`, paginação, `lowStock`)
+- `POST /api/sales` — Registrar venda no PDV
+- `GET /api/dashboard` — Coleta de KPIs e receita diária
 
 ---
 
-## 📁 Estrutura
+## 🔒 Considerações Técnicas e Segurança
 
-```
-ARCHNEXUS/
-├── Archlab.Backend/             # ASP.NET Core 10 Minimal APIs
-│   ├── Domain/                  # Entidades de domínio (15)
-│   ├── Data/                    # DbContext · Migrations · Seeder · Factory
-│   ├── Services/                # Regras de negócio
-│   ├── Endpoints/               # Rotas Minimal API
-│   ├── Contracts/               # DTOs request/response
-│   └── Program.cs
-├── Archlab.Backend.Tests/       # xUnit + SQLite in-memory (65 testes)
-├── frontend/                    # React 19 + TypeScript + Vite
-│   └── src/
-│       ├── pages/               # 9 páginas (Dashboard, PDV, Catálogo, ...)
-│       ├── components/          # Sidebar
-│       ├── store/               # Zustand (auth, cart)
-│       ├── api/                 # Axios client + interceptors JWT
-│       └── types/               # Contratos TypeScript
-├── .github/workflows/ci.yml     # Build · Test · Docker build
-├── docker-compose.yml           # PostgreSQL 17 (produção)
-├── docker-compose.dev.yml       # Override para dev local (porta 5433)
-├── .env.example                 # Variáveis de ambiente necessárias
-└── ARCHlab.slnx                 # Solution
-```
-
----
-
-## 🔒 Segurança
-
-- JWT com refresh tokens rotativos (revogação por token)
-- Senhas com BCrypt (work factor 11)
-- Rate limiting por IP
-- CORS configurável por ambiente
-- Seeder recusa senha padrão `admin123` fora de Development
-
-> **Fiscal:** A emissão NFC-e é uma **simulação técnica**. Para uso real: certificado digital A1/A3, integração com SEFAZ, regras tributárias por estado/regime.
+- **Resiliência no PDV:** O endpoint de fechamento de venda (`Sale`) utiliza mecanismos de bloqueio (*serializable transactions/locks*) para garantir que a concorrência na geração do número da nota e baixa de estoque não gere inconsistências.
+- **Fiscal:** A emissão de NFC-e atualmente é um mock técnico para fins arquiteturais.
+- **Seeder Inteligente:** O sistema bloqueia a senha de testes em ambiente de Produção e aceita configurações flexíveis de banco via variáveis de ambiente.
 
 ---
 
 <div align="center">
 
-**ARCHlab · ARCHNEXUS · Solo project by Kauã ([@Kaua-KGzin](https://github.com/Kaua-KGzin))**
+Feito com 💜 por **Kauã** ([@Kaua-KGzin](https://github.com/Kaua-KGzin))  
+*Transformando código em soluções de impacto.*
 
 </div>

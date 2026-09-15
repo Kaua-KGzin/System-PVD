@@ -49,7 +49,7 @@ export default function LoginPage() {
               autoFocus
             />
           </div>
-          <div className="form-group">
+          <div className="form-group" style={{ marginTop: '10px' }}>
             <label htmlFor="password">Senha</label>
             <input
               id="password"
@@ -61,10 +61,36 @@ export default function LoginPage() {
             />
           </div>
           {error && <p className="login-error">{error}</p>}
-          <button type="submit" className="btn-primary w-full" disabled={loading}>
+          <button type="submit" className="btn-primary w-full" disabled={loading} style={{ marginTop: '20px' }}>
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
+
+        <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+            Acessando para avaliar o portfólio?
+          </p>
+          <button 
+            type="button" 
+            className="btn-secondary w-full" 
+            onClick={async () => {
+              setError('')
+              setLoading(true)
+              try {
+                const { data } = await api.post<AuthResponse>('/auth/login', { username: 'admin', password: 'admin123' })
+                login(data)
+                navigate('/')
+              } catch {
+                setError('Falha no login de demonstração. Banco não iniciado?')
+              } finally {
+                setLoading(false)
+              }
+            }} 
+            disabled={loading}
+          >
+            Acessar Demo (Admin)
+          </button>
+        </div>
       </div>
     </div>
   )

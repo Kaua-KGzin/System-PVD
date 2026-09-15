@@ -8,6 +8,7 @@ public sealed class Sale
     public CashSession? CashSession { get; set; }
     public required string TerminalId { get; set; }
     public required string OperatorName { get; set; }
+    public Guid? UserId { get; set; }
     public string? CustomerDocument { get; set; }
     public Guid? CustomerId { get; set; }
     public Customer? Customer { get; set; }
@@ -25,4 +26,5 @@ public sealed class Sale
     public List<SaleItem> Items { get; set; } = [];
     public List<SalePayment> Payments { get; set; } = [];
     public FiscalDocument? FiscalDocument { get; set; }
+    public List<SaleReturn> Returns { get; set; } = [];
 }

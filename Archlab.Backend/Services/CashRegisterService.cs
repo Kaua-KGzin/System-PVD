@@ -145,6 +145,48 @@ public sealed class CashRegisterService(PdvDbContext db)
     }
 
 
+    public async Task<ServiceResult<CashMovementResponse>> AddMovementAsync(
+        Guid sessionId,
+        CreateCashMovementRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.Amount <= 0)
+            return ServiceResult<CashMovementResponse>.Fail("Valor da movimentacao precisa ser maior que zero.");
+
+        if (string.IsNullOrWhiteSpace(request.OperatorName))
+            return ServiceResult<CashMovementResponse>.Fail("Operador e obrigatorio.");
+
+        var session = await db.CashSessions.FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
+        if (session is null)
+            return ServiceResult<CashMovementResponse>.Fail("Sessao de caixa nao encontrada.", StatusCodes.Status404NotFound);
+
+        if (session.Status != CashSessionStatus.Open)
+            return ServiceResult<CashMovementResponse>.Fail("Movimentacoes so podem ser registradas em um caixa aberto.", StatusCodes.Status409Conflict);
+
+        var movement = new CashMovement
+        {
+            CashSessionId = session.Id,
+            Type = request.Type,
+            Amount = Math.Round(request.Amount, 2, MidpointRounding.AwayFromZero),
+            Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+            OperatorName = request.OperatorName.Trim()
+        };
+
+        db.CashMovements.Add(movement);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return ServiceResult<CashMovementResponse>.Ok(CashMovementResponse.From(movement));
+    }
+
+    public async Task<CashMovementResponse[]> ListMovementsAsync(Guid sessionId, CancellationToken cancellationToken)
+    {
+        return await db.CashMovements.AsNoTracking()
+            .Where(m => m.CashSessionId == sessionId)
+            .OrderByDescending(m => m.CreatedAt)
+            .Select(m => CashMovementResponse.From(m))
+            .ToArrayAsync(cancellationToken);
+    }
+
     private async Task<decimal> CalculateExpectedClosingAsync(CashSession session, CancellationToken cancellationToken)
     {
         var cashReceived = await db.SalePayments.AsNoTracking()
@@ -157,7 +199,15 @@ public sealed class CashRegisterService(PdvDbContext db)
             .Where(s => s.CashSessionId == session.Id && s.Status == SaleStatus.Completed)
             .SumAsync(s => s.ChangeAmount, cancellationToken);
 
-        return session.OpeningAmount + cashReceived - changePaid;
+        var supplies = await db.CashMovements.AsNoTracking()
+            .Where(m => m.CashSessionId == session.Id && m.Type == CashMovementType.Supply)
+            .SumAsync(m => m.Amount, cancellationToken);
+
+        var bleeds = await db.CashMovements.AsNoTracking()
+            .Where(m => m.CashSessionId == session.Id && m.Type == CashMovementType.Bleed)
+            .SumAsync(m => m.Amount, cancellationToken);
+
+        return session.OpeningAmount + cashReceived - changePaid + supplies - bleeds;
     }
 
     private async Task<Dictionary<Guid, decimal>> ComputeExpectedClosingsAsync(
@@ -179,11 +229,25 @@ public sealed class CashRegisterService(PdvDbContext db)
             .Select(g => new { CashSessionId = g.Key, Total = g.Sum(s => s.ChangeAmount) })
             .ToDictionaryAsync(x => x.CashSessionId, x => x.Total, cancellationToken);
 
+        var suppliesBySession = await db.CashMovements.AsNoTracking()
+            .Where(m => sessionIds.Contains(m.CashSessionId) && m.Type == CashMovementType.Supply)
+            .GroupBy(m => m.CashSessionId)
+            .Select(g => new { CashSessionId = g.Key, Total = g.Sum(m => m.Amount) })
+            .ToDictionaryAsync(x => x.CashSessionId, x => x.Total, cancellationToken);
+
+        var bleedsBySession = await db.CashMovements.AsNoTracking()
+            .Where(m => sessionIds.Contains(m.CashSessionId) && m.Type == CashMovementType.Bleed)
+            .GroupBy(m => m.CashSessionId)
+            .Select(g => new { CashSessionId = g.Key, Total = g.Sum(m => m.Amount) })
+            .ToDictionaryAsync(x => x.CashSessionId, x => x.Total, cancellationToken);
+
         return sessions.ToDictionary(
             s => s.Id,
             s => s.OpeningAmount
                 + cashReceivedBySession.GetValueOrDefault(s.Id, 0m)
-                - changePaidBySession.GetValueOrDefault(s.Id, 0m));
+                - changePaidBySession.GetValueOrDefault(s.Id, 0m)
+                + suppliesBySession.GetValueOrDefault(s.Id, 0m)
+                - bleedsBySession.GetValueOrDefault(s.Id, 0m));
     }
 
     private static string Normalize(string value) => value.Trim().ToUpperInvariant();

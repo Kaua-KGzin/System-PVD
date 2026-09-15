@@ -147,5 +147,29 @@ public sealed class SaleServiceTests : IDisposable
         var auditLogs = await _db.AuditLogs.Where(a => a.EntityName == "Sale").ToListAsync();
         Assert.NotEmpty(auditLogs);
     }
+
+    [Fact]
+    public async Task RegisterReturn_ValidItems_ReturnsProductToStock()
+    {
+        var sale = await _sut.CreateAsync(BuildSaleRequest(), default);
+        Assert.True(sale.Succeeded);
+
+        var productBefore = await _db.Products.FirstAsync(p => p.Barcode == "7891000100103");
+        var stockBefore = productBefore.StockQuantity;
+
+        var returnResult = await _sut.RegisterReturnAsync(sale.Value!.Id, new CreateSaleReturnRequest(
+            "Cliente desistiu",
+            "Operador",
+            [new CreateSaleReturnItemRequest(productBefore.Id, 1m)]), default);
+
+        Assert.True(returnResult.Succeeded);
+        Assert.Equal(24.90m, returnResult.Value!.TotalRefundAmount);
+
+        var productAfter = await _db.Products.FirstAsync(p => p.Barcode == "7891000100103");
+        Assert.Equal(stockBefore + 1, productAfter.StockQuantity);
+
+        var returns = await _sut.ListReturnsAsync(sale.Value.Id, default);
+        Assert.Single(returns);
+    }
 }
 

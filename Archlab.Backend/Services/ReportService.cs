@@ -21,14 +21,11 @@ public sealed class ReportService(PdvDbContext db)
         if (!string.IsNullOrWhiteSpace(terminalId))
             baseQuery = baseQuery.Where(s => s.TerminalId == terminalId);
 
-        var totalsTask = GetTotalsAsync(baseQuery, cancellationToken);
-        var byMethodTask = GetByMethodAsync(from, to, terminalId, cancellationToken);
-        var byHourTask = GetByHourAsync(baseQuery, cancellationToken);
-        await Task.WhenAll(totalsTask, byMethodTask, byHourTask);
+        var totals = await GetTotalsAsync(baseQuery, cancellationToken);
+        var byMethod = await GetByMethodAsync(from, to, terminalId, cancellationToken);
+        var byHour = await GetByHourAsync(baseQuery, cancellationToken);
 
-        var (totalSales, totalRevenue, totalDiscounts, netRevenue) = totalsTask.Result;
-        var byMethod = byMethodTask.Result;
-        var byHour = byHourTask.Result;
+        var (totalSales, totalRevenue, totalDiscounts, netRevenue) = totals;
 
         return new SalesSummaryResponse(
             totalSales,
@@ -121,11 +118,8 @@ public sealed class ReportService(PdvDbContext db)
         if (session is null)
             return ServiceResult<CashSessionSummaryResponse>.Fail("Sessao nao encontrada.", StatusCodes.Status404NotFound);
 
-        var salesSummaryTask = GetSessionSalesSummaryAsync(sessionId, cancellationToken);
-        var paymentBreakdownTask = GetSessionPaymentBreakdownAsync(sessionId, cancellationToken);
-        await Task.WhenAll(salesSummaryTask, paymentBreakdownTask);
-        var salesSummary = salesSummaryTask.Result;
-        var paymentBreakdown = paymentBreakdownTask.Result;
+        var salesSummary = await GetSessionSalesSummaryAsync(sessionId, cancellationToken);
+        var paymentBreakdown = await GetSessionPaymentBreakdownAsync(sessionId, cancellationToken);
 
         var expectedClosing = await GetExpectedCashClosingAsync(session.Id, session.OpeningAmount, cancellationToken);
 

@@ -53,6 +53,21 @@ public static class SaleEndpoints
             .RequireAuthorization("AdminOrManager")
             .WithValidation<CancelSaleRequest>();
 
+        group.MapPost("/{id:guid}/returns", async (
+            Guid id,
+            CreateSaleReturnRequest request,
+            SaleService service,
+            CancellationToken cancellationToken) =>
+            (await service.RegisterReturnAsync(id, request, cancellationToken)).ToHttpResult())
+            .WithName("RegisterSaleReturn")
+            .RequireAuthorization("AdminOrManager");
+
+        group.MapGet("/{id:guid}/returns", async (
+            Guid id,
+            SaleService service,
+            CancellationToken cancellationToken) =>
+            Results.Ok(await service.ListReturnsAsync(id, cancellationToken)))
+            .WithName("ListSaleReturns");
 
         return app;
     }

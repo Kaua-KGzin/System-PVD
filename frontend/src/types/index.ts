@@ -26,6 +26,7 @@ export interface Product {
   name: string
   unitOfMeasure: string
   unitPrice: number
+  costPrice: number
   stockQuantity: number
   minStockQuantity: number
   isActive: boolean
@@ -53,12 +54,15 @@ export interface Customer {
 }
 
 export interface SaleItem {
+  id: string
   productId: string
   barcode: string
   productName: string
   quantity: number
   unitPrice: number
-  itemDiscount: number
+  unitDiscount: number
+  grossTotal: number
+  discountTotal: number
   netTotal: number
 }
 
@@ -156,5 +160,124 @@ export interface StockAlert {
 export interface CartItem {
   product: Product
   quantity: number
-  itemDiscount: number
+  unitDiscount: number
+}
+
+export interface CashMovement {
+  id: string
+  cashSessionId: string
+  type: 'Supply' | 'Bleed'
+  amount: number
+  reason: string | null
+  operatorName: string
+  createdAt: string
+}
+
+export interface SaleReturnItem {
+  id: string
+  productId: string
+  barcode: string
+  productName: string
+  quantity: number
+  unitPrice: number
+  refundAmount: number
+}
+
+export interface SaleReturn {
+  id: string
+  saleId: string
+  reason: string
+  operatorName: string
+  totalRefundAmount: number
+  returnedAt: string
+  items: SaleReturnItem[]
+}
+
+export interface User {
+  id: string
+  username: string
+  role: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface AuditLog {
+  id: string
+  userId: string | null
+  username: string | null
+  action: string
+  entityName: string
+  entityId: string | null
+  changesJson: string | null
+  ipAddress: string | null
+  timestamp: string
+}
+
+export interface PurchaseEntry {
+  id: string
+  supplierId: string
+  supplierName: string
+  invoiceNumber: string
+  notes: string | null
+  totalCost: number
+  receivedAt: string
+  createdAt: string
+  items: PurchaseEntryItem[]
+}
+
+export interface PurchaseEntryItem {
+  id: string
+  productId: string
+  productName: string
+  barcode: string
+  quantity: number
+  unitCost: number
+  totalCost: number
+}
+
+export interface CustomerLoyalty {
+  id: string
+  customerId: string
+  customerName: string
+  totalPoints: number
+  redeemedPoints: number
+  availablePoints: number
+  createdAt: string
+  transactions: LoyaltyTransaction[]
+}
+
+export interface LoyaltyTransaction {
+  id: string
+  points: number
+  type: string
+  notes: string | null
+  createdAt: string
+}
+
+export interface SellerCommission {
+  id: string
+  userId: string
+  username: string
+  percentage: number
+  isActive: boolean
+  createdAt: string
+}
+
+export interface CommissionTransaction {
+  id: string
+  saleNumber: number
+  saleAmount: number
+  commissionPercentage: number
+  commissionAmount: number
+  isPaid: boolean
+  paidAt: string | null
+  createdAt: string
+}
+
+export interface CommissionSummary {
+  totalCommission: number
+  paidCommission: number
+  pendingCommission: number
+  totalSales: number
+  recentTransactions: CommissionTransaction[]
 }

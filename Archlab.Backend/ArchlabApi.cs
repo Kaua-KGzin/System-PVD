@@ -11,6 +11,7 @@ using FluentValidation;
 using Archlab.Backend.Data;
 using Archlab.Backend.Data.Interceptors;
 using Archlab.Backend.Endpoints;
+using Archlab.Backend.Hardware;
 using Archlab.Backend.Services;
 
 namespace Archlab.Backend;
@@ -108,23 +109,25 @@ public static class ArchlabApi
             options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         });
 
-        var dbProvider = builder.Configuration["DatabaseProvider"] ?? "Sqlite";
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+        var forceSqlite = builder.Configuration["DatabaseProvider"]?.Equals("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+
         builder.Services.AddDbContext<PdvDbContext>((sp, options) =>
         {
             var auditInterceptor = sp.GetRequiredService<AuditLogInterceptor>();
             options.AddInterceptors(auditInterceptor);
             options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-            if (dbProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+            // PostgreSQL como principal; fallback para SQLite se a connection string não estiver configurada
+            if (!string.IsNullOrWhiteSpace(connectionString) && !forceSqlite)
             {
-                options.UseNpgsql(connectionString ?? throw new InvalidOperationException(
-                    "ConnectionStrings:DefaultConnection is required for PostgreSQL."));
+                options.UseNpgsql(connectionString);
             }
             else
             {
-                options.UseSqlite(connectionString ?? "Data Source=pdv.db");
+                options.UseSqlite(forceSqlite && !string.IsNullOrWhiteSpace(connectionString) 
+                    ? connectionString 
+                    : "Data Source=pdv.db");
             }
         });
 
@@ -167,10 +170,16 @@ public static class ArchlabApi
         builder.Services.AddScoped<CustomerService>();
         builder.Services.AddScoped<CashRegisterService>();
         builder.Services.AddScoped<FiscalDocumentService>();
+        builder.Services.AddScoped<IFiscalIssuer, FiscalDocumentService>();
         builder.Services.AddScoped<SaleService>();
         builder.Services.AddScoped<ReportService>();
         builder.Services.AddScoped<SupplierService>();
         builder.Services.AddScoped<PurchaseEntryService>();
+        builder.Services.AddScoped<LoyaltyService>();
+        builder.Services.AddScoped<CommissionService>();
+        builder.Services.AddScoped<IPaymentGatewayService, PaymentGatewayService>();
+        builder.Services.AddSingleton<IReceiptPrinter, VirtualMockReceiptPrinter>();
+        builder.Services.AddSingleton<IScaleService, VirtualMockScaleService>();
 
         var app = builder.Build();
 
@@ -228,6 +237,10 @@ public static class ArchlabApi
         app.MapSupplierEndpoints();
         app.MapPurchaseEntryEndpoints();
         app.MapUserEndpoints();
+        app.MapAuditLogEndpoints();
+        app.MapLoyaltyEndpoints();
+        app.MapCommissionEndpoints();
+        app.MapPaymentEndpoints();
 
         if (serveStaticFiles)
         {

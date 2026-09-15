@@ -6,7 +6,7 @@ using Archlab.Backend.Domain;
 
 namespace Archlab.Backend.Services;
 
-public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDocumentService, ILogger<SaleService> logger)
+public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDocumentService, LoyaltyService loyaltyService, CommissionService commissionService, ILogger<SaleService> logger)
 {
     public async Task<PagedResponse<SaleResponse>> ListAsync(
         Guid? cashSessionId,
@@ -94,6 +94,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
             CashSessionId = cashSession.Id,
             TerminalId = cashSession.TerminalId,
             OperatorName = request.OperatorName.Trim(),
+            UserId = request.UserId,
             CustomerDocument = string.IsNullOrWhiteSpace(request.CustomerDocument) ? null : request.CustomerDocument.Trim(),
             CustomerId = request.CustomerId,
             SaleDiscountTotal = request.SaleDiscountTotal
@@ -182,7 +183,7 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
 
             if (request.IssueFiscalDocument)
             {
-                var document = await fiscalDocumentService.BuildForSaleAsync(sale, cancellationToken);
+                var document = await fiscalDocumentService.BuildForSaleAsync(sale, cancellationToken: cancellationToken);
                 db.FiscalDocuments.Add(document);
                 await db.SaveChangesAsync(cancellationToken);
             }
@@ -197,9 +198,16 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
         }
 
 
-        logger.LogInformation(
+            logger.LogInformation(
             "Sale created: Id={SaleId} Number={Number} Terminal={Terminal} Operator={Operator} Total={NetTotal:F2}",
             sale.Id, sale.Number, sale.TerminalId, sale.OperatorName, sale.NetTotal);
+
+        if (sale.CustomerId.HasValue)
+        {
+            _ = await loyaltyService.EarnPointsAsync(sale.CustomerId.Value, sale.Id, sale.NetTotal, cancellationToken);
+        }
+
+        _ = await commissionService.RegisterSaleCommissionAsync(sale.Id, sale.NetTotal, cancellationToken);
 
         var createdSale = await LoadSaleAsync(sale.Id, asTracking: false, cancellationToken);
         return ServiceResult<SaleResponse>.Ok(SaleResponse.From(createdSale!));
@@ -271,6 +279,122 @@ public sealed class SaleService(PdvDbContext db, FiscalDocumentService fiscalDoc
 
         var cancelledSale = await LoadSaleAsync(sale.Id, asTracking: false, cancellationToken);
         return ServiceResult<SaleResponse>.Ok(SaleResponse.From(cancelledSale!));
+    }
+
+    public async Task<ServiceResult<SaleReturnResponse>> RegisterReturnAsync(
+        Guid saleId,
+        CreateSaleReturnRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return ServiceResult<SaleReturnResponse>.Fail("Motivo da devolucao e obrigatorio.");
+
+        if (string.IsNullOrWhiteSpace(request.OperatorName))
+            return ServiceResult<SaleReturnResponse>.Fail("Operador e obrigatorio.");
+
+        if (request.Items is null || request.Items.Count == 0)
+            return ServiceResult<SaleReturnResponse>.Fail("A devolucao precisa conter ao menos um item.");
+
+        var sale = await LoadSaleAsync(saleId, asTracking: true, cancellationToken);
+        if (sale is null)
+            return ServiceResult<SaleReturnResponse>.Fail("Venda nao encontrada.", StatusCodes.Status404NotFound);
+
+        if (sale.Status == SaleStatus.Cancelled)
+            return ServiceResult<SaleReturnResponse>.Fail("Nao e possivel devolver itens de uma venda cancelada.", StatusCodes.Status409Conflict);
+
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        var existingReturns = await db.SaleReturns
+            .Include(r => r.Items)
+            .Where(r => r.SaleId == saleId)
+            .ToListAsync(cancellationToken);
+
+        var previouslyReturnedByProduct = existingReturns
+            .SelectMany(r => r.Items)
+            .GroupBy(i => i.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        var saleItemsByProduct = sale.Items.ToDictionary(i => i.ProductId);
+
+        var saleReturn = new SaleReturn
+        {
+            SaleId = sale.Id,
+            Reason = request.Reason.Trim(),
+            OperatorName = request.OperatorName.Trim(),
+        };
+
+        var productIds = request.Items.Select(i => i.ProductId).Distinct().ToArray();
+        var products = await db.Products
+            .Where(p => productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+        decimal totalRefund = 0;
+
+        foreach (var itemReq in request.Items)
+        {
+            if (itemReq.Quantity <= 0)
+                return ServiceResult<SaleReturnResponse>.Fail("Quantidade devolvida precisa ser maior que zero.");
+
+            if (!saleItemsByProduct.TryGetValue(itemReq.ProductId, out var saleItem))
+                return ServiceResult<SaleReturnResponse>.Fail($"O produto informado nao faz parte desta venda.");
+
+            var alreadyReturned = previouslyReturnedByProduct.GetValueOrDefault(itemReq.ProductId, 0m);
+            var maxReturnable = saleItem.Quantity - alreadyReturned;
+
+            if (itemReq.Quantity > maxReturnable)
+                return ServiceResult<SaleReturnResponse>.Fail($"Quantidade a devolver para {saleItem.ProductName} excede o limite disponível ({maxReturnable}).");
+
+            if (!products.TryGetValue(itemReq.ProductId, out var product))
+                return ServiceResult<SaleReturnResponse>.Fail($"Produto nao encontrado.", StatusCodes.Status404NotFound);
+
+            var effectiveUnitRefund = Math.Round(saleItem.NetTotal / saleItem.Quantity, 2, MidpointRounding.AwayFromZero);
+            var itemRefund = Math.Round(effectiveUnitRefund * itemReq.Quantity, 2, MidpointRounding.AwayFromZero);
+            totalRefund += itemRefund;
+
+            saleReturn.Items.Add(new SaleReturnItem
+            {
+                ProductId = product.Id,
+                Barcode = product.Barcode,
+                ProductName = product.Name,
+                Quantity = itemReq.Quantity,
+                UnitPrice = saleItem.UnitPrice,
+                RefundAmount = itemRefund
+            });
+
+            product.StockQuantity += itemReq.Quantity;
+            product.UpdatedAt = DateTimeOffset.UtcNow;
+            product.RowVersion++;
+
+            db.InventoryMovements.Add(new InventoryMovement
+            {
+                ProductId = product.Id,
+                SaleId = sale.Id,
+                QuantityDelta = itemReq.Quantity,
+                Type = InventoryMovementType.SaleReturn,
+                Notes = $"Devolucao da venda {sale.Number}: {request.Reason.Trim()}"
+            });
+        }
+
+        saleReturn.TotalRefundAmount = totalRefund;
+
+        db.SaleReturns.Add(saleReturn);
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        logger.LogInformation("Sale return registered: SaleId={SaleId} RefundAmount={Amount:F2}", sale.Id, totalRefund);
+
+        return ServiceResult<SaleReturnResponse>.Ok(SaleReturnResponse.From(saleReturn));
+    }
+
+    public async Task<SaleReturnResponse[]> ListReturnsAsync(Guid saleId, CancellationToken cancellationToken)
+    {
+        var returns = await db.SaleReturns.AsNoTracking()
+            .Include(r => r.Items)
+            .Where(r => r.SaleId == saleId)
+            .OrderByDescending(r => r.ReturnedAt)
+            .ToArrayAsync(cancellationToken);
+
+        return returns.Select(SaleReturnResponse.From).ToArray();
     }
 
     private async Task<Sale?> LoadSaleAsync(Guid id, bool asTracking, CancellationToken cancellationToken)

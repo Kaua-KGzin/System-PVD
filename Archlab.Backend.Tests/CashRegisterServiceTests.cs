@@ -171,4 +171,24 @@ public sealed class CashRegisterServiceTests : IDisposable
         Assert.Equal(1, result.TotalCount);
         Assert.Equal("CAIXA-B", result.Items[0].TerminalId);
     }
+
+    [Fact]
+    public async Task AddMovement_SupplyAndBleed_UpdatesExpectedClosingAmount()
+    {
+        var session = await _sut.OpenAsync(new OpenCashSessionRequest("CAIXA-MOV", "Op", 100m), default);
+        var id = session.Value!.Id;
+
+        var supplyResult = await _sut.AddMovementAsync(id, new CreateCashMovementRequest(CashMovementType.Supply, 50m, "Troco inicial", "Op"), default);
+        Assert.True(supplyResult.Succeeded);
+
+        var bleedResult = await _sut.AddMovementAsync(id, new CreateCashMovementRequest(CashMovementType.Bleed, 30m, "Recolhimento cofre", "Op"), default);
+        Assert.True(bleedResult.Succeeded);
+
+        var refreshed = await _sut.GetByIdAsync(id, default);
+        Assert.True(refreshed.Succeeded);
+        Assert.Equal(120m, refreshed.Value!.ExpectedClosingAmount);
+
+        var movements = await _sut.ListMovementsAsync(id, default);
+        Assert.Equal(2, movements.Length);
+    }
 }

@@ -25,6 +25,8 @@ public enum PaymentMethod
 public enum FiscalDocumentStatus
 {
     Issued,
+    Authorized,
+    ContingencyPending,
     Cancelled
 }
 
@@ -33,5 +35,12 @@ public enum InventoryMovementType
     Sale,
     SaleCancellation,
     PurchaseEntry,
-    ManualAdjustment
+    ManualAdjustment,
+    SaleReturn
+}
+
+public enum CashMovementType
+{
+    Supply,
+    Bleed
 }

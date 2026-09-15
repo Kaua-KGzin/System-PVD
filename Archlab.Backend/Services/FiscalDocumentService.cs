@@ -8,14 +8,17 @@ using Archlab.Backend.Domain;
 
 namespace Archlab.Backend.Services;
 
-public sealed class FiscalDocumentService(PdvDbContext db)
+public sealed class FiscalDocumentService(PdvDbContext db) : IFiscalIssuer
 {
     private const string SimulatedIssuerDocument = "00000000000000";
     private const string StateCode = "35";
     private const string ModelCode = "65";
     private const string Series = "001";
 
-    public async Task<FiscalDocument> BuildForSaleAsync(Sale sale, CancellationToken cancellationToken)
+    public Task<FiscalDocument> IssueForSaleAsync(Sale sale, bool contingencyMode = false, CancellationToken ct = default) =>
+        BuildForSaleAsync(sale, contingencyMode, ct);
+
+    public async Task<FiscalDocument> BuildForSaleAsync(Sale sale, bool contingencyMode = false, CancellationToken cancellationToken = default)
     {
         var nextNumber = await db.FiscalDocuments
             .Select(document => (int?)document.Number)
@@ -31,11 +34,17 @@ public sealed class FiscalDocumentService(PdvDbContext db)
             Series = Series,
             Number = nextNumber,
             AccessKey = accessKey,
+            IsContingency = contingencyMode,
+            Status = contingencyMode ? FiscalDocumentStatus.ContingencyPending : FiscalDocumentStatus.Issued,
+            Protocol = contingencyMode ? null : $"PROTO-{RandomNumberGenerator.GetInt32(100_000, 999_999)}",
             XmlPayload = JsonSerializer.Serialize(new
             {
-                aviso = "Documento fiscal simulado. Nao substitui emissao NFC-e/SAT autorizada pela SEFAZ.",
+                aviso = contingencyMode
+                    ? "EMITIDO EM CONTINGENCIA OFFLINE. Transmitir a SEFAZ em ate 24h."
+                    : "Documento fiscal simulado. Nao substitui emissao NFC-e/SAT autorizada pela SEFAZ.",
                 venda = sale.Number,
                 total = sale.NetTotal,
+                contingencia = contingencyMode,
                 emitidoEm = DateTimeOffset.UtcNow
             })
         };

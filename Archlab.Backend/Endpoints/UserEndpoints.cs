@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Archlab.Backend.Common;
 using Archlab.Backend.Contracts;
 using Archlab.Backend.Services;
@@ -44,6 +45,24 @@ public static class UserEndpoints
             CancellationToken cancellationToken) =>
             (await service.ReactivateAsync(id, cancellationToken)).ToHttpResult())
             .WithName("ReactivateUser");
+
+        var selfGroup = app.MapGroup("/api/users")
+            .WithTags("Usuarios")
+            .RequireAuthorization();
+
+        selfGroup.MapPost("/change-password", async (
+            ChangePasswordRequest request,
+            ClaimsPrincipal user,
+            UserService service,
+            CancellationToken cancellationToken) =>
+        {
+            var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? user.FindFirst("sub")?.Value;
+            if (userIdStr is null || !Guid.TryParse(userIdStr, out var userId))
+                return Results.Unauthorized();
+
+            return (await service.ChangePasswordAsync(userId, request, cancellationToken)).ToHttpResult();
+        }).WithName("ChangePassword");
 
         return app;
     }

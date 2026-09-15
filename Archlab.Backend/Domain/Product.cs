@@ -8,6 +8,7 @@ public sealed class Product
     public required string Name { get; set; }
     public string UnitOfMeasure { get; set; } = "UN";
     public decimal UnitPrice { get; set; }
+    public decimal CostPrice { get; set; }
     public decimal StockQuantity { get; set; }
     public decimal MinStockQuantity { get; set; }
     public Guid? CategoryId { get; set; }

@@ -38,3 +38,29 @@ public sealed record CashSessionResponse(
             session.ClosingNotes,
             session.Status);
 }
+
+public sealed record CreateCashMovementRequest(
+    CashMovementType Type,
+    decimal Amount,
+    string? Reason,
+    string OperatorName);
+
+public sealed record CashMovementResponse(
+    Guid Id,
+    Guid CashSessionId,
+    CashMovementType Type,
+    decimal Amount,
+    string? Reason,
+    string OperatorName,
+    DateTimeOffset CreatedAt)
+{
+    public static CashMovementResponse From(CashMovement movement) =>
+        new(
+            movement.Id,
+            movement.CashSessionId,
+            movement.Type,
+            movement.Amount,
+            movement.Reason,
+            movement.OperatorName,
+            movement.CreatedAt);
+}

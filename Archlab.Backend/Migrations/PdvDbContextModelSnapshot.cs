@@ -17,7 +17,7 @@ namespace Archlab.Backend.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.7")
+                .HasAnnotation("ProductVersion", "10.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -66,6 +66,41 @@ namespace Archlab.Backend.Migrations
                     b.HasIndex("Timestamp");
 
                     b.ToTable("AuditLogs");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.CashMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CashSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OperatorName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(240)
+                        .HasColumnType("character varying(240)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashSessionId");
+
+                    b.ToTable("CashMovements");
                 });
 
             modelBuilder.Entity("Archlab.Backend.Domain.CashSession", b =>
@@ -155,6 +190,50 @@ namespace Archlab.Backend.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("Archlab.Backend.Domain.CommissionTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CommissionAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("CommissionPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("SaleAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("SaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SellerCommissionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("SaleId");
+
+                    b.HasIndex("SellerCommissionId");
+
+                    b.ToTable("CommissionTransactions");
+                });
+
             modelBuilder.Entity("Archlab.Backend.Domain.Customer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -194,6 +273,35 @@ namespace Archlab.Backend.Migrations
                     b.ToTable("Customers");
                 });
 
+            modelBuilder.Entity("Archlab.Backend.Domain.CustomerLoyalty", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("RedeemedPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId")
+                        .IsUnique();
+
+                    b.ToTable("CustomerLoyalties");
+                });
+
             modelBuilder.Entity("Archlab.Backend.Domain.FiscalDocument", b =>
                 {
                     b.Property<Guid>("Id")
@@ -208,6 +316,9 @@ namespace Archlab.Backend.Migrations
                     b.Property<DateTimeOffset?>("CancelledAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsContingency")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTimeOffset>("IssuedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -218,6 +329,9 @@ namespace Archlab.Backend.Migrations
 
                     b.Property<int>("Number")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Protocol")
+                        .HasColumnType("text");
 
                     b.Property<Guid>("SaleId")
                         .HasColumnType("uuid");
@@ -281,6 +395,44 @@ namespace Archlab.Backend.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("InventoryMovements");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.LoyaltyTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomerLoyaltyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(240)
+                        .HasColumnType("character varying(240)");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CustomerLoyaltyId");
+
+                    b.HasIndex("SaleId");
+
+                    b.ToTable("LoyaltyTransactions");
                 });
 
             modelBuilder.Entity("Archlab.Backend.Domain.Product", b =>
@@ -645,6 +797,112 @@ namespace Archlab.Backend.Migrations
                     b.ToTable("SalePayments");
                 });
 
+            modelBuilder.Entity("Archlab.Backend.Domain.SaleReturn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OperatorName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(240)
+                        .HasColumnType("character varying(240)");
+
+                    b.Property<DateTimeOffset>("ReturnedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalRefundAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SaleId");
+
+                    b.ToTable("SaleReturns");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.SaleReturnItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Barcode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<decimal>("RefundAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("SaleReturnId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SaleReturnId");
+
+                    b.ToTable("SaleReturnItems");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.SellerCommission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Percentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("SellerCommissions");
+                });
+
             modelBuilder.Entity("Archlab.Backend.Domain.Supplier", b =>
                 {
                     b.Property<Guid>("Id")
@@ -723,6 +981,47 @@ namespace Archlab.Backend.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Archlab.Backend.Domain.CashMovement", b =>
+                {
+                    b.HasOne("Archlab.Backend.Domain.CashSession", "CashSession")
+                        .WithMany("Movements")
+                        .HasForeignKey("CashSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CashSession");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.CommissionTransaction", b =>
+                {
+                    b.HasOne("Archlab.Backend.Domain.Sale", "Sale")
+                        .WithMany()
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Archlab.Backend.Domain.SellerCommission", "SellerCommission")
+                        .WithMany("Transactions")
+                        .HasForeignKey("SellerCommissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sale");
+
+                    b.Navigation("SellerCommission");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.CustomerLoyalty", b =>
+                {
+                    b.HasOne("Archlab.Backend.Domain.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("Archlab.Backend.Domain.FiscalDocument", b =>
                 {
                     b.HasOne("Archlab.Backend.Domain.Sale", "Sale")
@@ -743,6 +1042,24 @@ namespace Archlab.Backend.Migrations
                         .IsRequired();
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.LoyaltyTransaction", b =>
+                {
+                    b.HasOne("Archlab.Backend.Domain.CustomerLoyalty", "CustomerLoyalty")
+                        .WithMany("Transactions")
+                        .HasForeignKey("CustomerLoyaltyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Archlab.Backend.Domain.Sale", "Sale")
+                        .WithMany()
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CustomerLoyalty");
+
+                    b.Navigation("Sale");
                 });
 
             modelBuilder.Entity("Archlab.Backend.Domain.Product", b =>
@@ -844,8 +1161,51 @@ namespace Archlab.Backend.Migrations
                     b.Navigation("Sale");
                 });
 
+            modelBuilder.Entity("Archlab.Backend.Domain.SaleReturn", b =>
+                {
+                    b.HasOne("Archlab.Backend.Domain.Sale", "Sale")
+                        .WithMany("Returns")
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.SaleReturnItem", b =>
+                {
+                    b.HasOne("Archlab.Backend.Domain.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Archlab.Backend.Domain.SaleReturn", "SaleReturn")
+                        .WithMany("Items")
+                        .HasForeignKey("SaleReturnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("SaleReturn");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.SellerCommission", b =>
+                {
+                    b.HasOne("Archlab.Backend.Domain.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Archlab.Backend.Domain.CashSession", b =>
                 {
+                    b.Navigation("Movements");
+
                     b.Navigation("Sales");
                 });
 
@@ -857,6 +1217,11 @@ namespace Archlab.Backend.Migrations
             modelBuilder.Entity("Archlab.Backend.Domain.Customer", b =>
                 {
                     b.Navigation("Sales");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.CustomerLoyalty", b =>
+                {
+                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("Archlab.Backend.Domain.Product", b =>
@@ -876,6 +1241,18 @@ namespace Archlab.Backend.Migrations
                     b.Navigation("Items");
 
                     b.Navigation("Payments");
+
+                    b.Navigation("Returns");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.SaleReturn", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Archlab.Backend.Domain.SellerCommission", b =>
+                {
+                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("Archlab.Backend.Domain.Supplier", b =>

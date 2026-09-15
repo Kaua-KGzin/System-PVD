@@ -38,7 +38,7 @@ export const useCartStore = create<CartState>()(
             ),
           })
         } else {
-          set({ items: [...items, { product, quantity, itemDiscount: 0 }] })
+          set({ items: [...items, { product, quantity, unitDiscount: 0 }] })
         }
       },
 
@@ -55,11 +55,11 @@ export const useCartStore = create<CartState>()(
       updateDiscount: (barcode, discount) =>
         set({
           items: get().items.map((i) =>
-            i.product.barcode === barcode ? { ...i, itemDiscount: discount } : i
+            i.product.barcode === barcode ? { ...i, unitDiscount: Math.max(0, discount) } : i
           ),
         }),
 
-      setSaleDiscount: (discount) => set({ saleDiscount: discount }),
+      setSaleDiscount: (discount) => set({ saleDiscount: Math.max(0, discount) }),
 
       clear: () => set({ items: [], saleDiscount: 0 }),
 
@@ -67,8 +67,8 @@ export const useCartStore = create<CartState>()(
 
       netTotal: () => {
         const gross = get().grossTotal()
-        const itemDiscounts = get().items.reduce((sum, i) => sum + i.itemDiscount, 0)
-        return gross - itemDiscounts - get().saleDiscount
+        const itemDiscounts = get().items.reduce((sum, i) => sum + (i.unitDiscount || 0) * i.quantity, 0)
+        return Math.max(0, gross - itemDiscounts - get().saleDiscount)
       },
     }),
     {

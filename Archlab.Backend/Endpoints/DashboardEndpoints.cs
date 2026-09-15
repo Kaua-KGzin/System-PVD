@@ -13,18 +13,13 @@ public static class DashboardEndpoints
             PdvDbContext db,
             CancellationToken ct) =>
         {
-            var todayStart = new DateTimeOffset(DateTime.Today);
+            var todayStart = new DateTimeOffset(DateTime.UtcNow.Date, TimeSpan.Zero);
             var todayEnd = todayStart.AddDays(1);
 
-            var todaySalesTask = GetTodaySalesAsync(db, todayStart, todayEnd, ct);
-            var openSessionsTask = GetOpenSessionsCountAsync(db, ct);
-            var lowStockTask = GetLowStockCountAsync(db, ct);
-            var recentSalesTask = GetRecentSalesAsync(db, ct);
-            await Task.WhenAll(todaySalesTask, openSessionsTask, lowStockTask, recentSalesTask);
-            var todaySales = todaySalesTask.Result;
-            var openSessions = openSessionsTask.Result;
-            var lowStockCount = lowStockTask.Result;
-            var recentSales = recentSalesTask.Result;
+            var todaySales = await GetTodaySalesAsync(db, todayStart, todayEnd, ct);
+            var openSessions = await GetOpenSessionsCountAsync(db, ct);
+            var lowStockCount = await GetLowStockCountAsync(db, ct);
+            var recentSales = await GetRecentSalesAsync(db, ct);
 
             var response = new DashboardResponse(todaySales, openSessions, lowStockCount, recentSales);
             return Results.Ok(response);

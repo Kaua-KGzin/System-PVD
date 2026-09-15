@@ -21,7 +21,14 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<PurchaseEntry> PurchaseEntries => Set<PurchaseEntry>();
     public DbSet<PurchaseEntryItem> PurchaseEntryItems => Set<PurchaseEntryItem>();
+    public DbSet<CashMovement> CashMovements => Set<CashMovement>();
+    public DbSet<SaleReturn> SaleReturns => Set<SaleReturn>();
+    public DbSet<SaleReturnItem> SaleReturnItems => Set<SaleReturnItem>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<CustomerLoyalty> CustomerLoyalties => Set<CustomerLoyalty>();
+    public DbSet<LoyaltyTransaction> LoyaltyTransactions => Set<LoyaltyTransaction>();
+    public DbSet<SellerCommission> SellerCommissions => Set<SellerCommission>();
+    public DbSet<CommissionTransaction> CommissionTransactions => Set<CommissionTransaction>();
 
 
     private static readonly ValueConverter<DateTimeOffset, long> DateTimeOffsetConverter = new(
@@ -101,6 +108,7 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
             entity.Property(product => product.Name).HasMaxLength(160).IsRequired();
             entity.Property(product => product.UnitOfMeasure).HasMaxLength(12).IsRequired();
             entity.Property(product => product.UnitPrice).HasPrecision(18, 2);
+            entity.Property(product => product.CostPrice).HasPrecision(18, 2);
             entity.Property(product => product.StockQuantity).HasPrecision(18, 3);
             entity.Property(product => product.MinStockQuantity).HasPrecision(18, 3);
             entity.Property(product => product.RowVersion).IsConcurrencyToken();
@@ -252,6 +260,102 @@ public sealed class PdvDbContext(DbContextOptions<PdvDbContext> options) : DbCon
             entity.HasOne(i => i.Product)
                 .WithMany()
                 .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CashMovement>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.Amount).HasPrecision(18, 2);
+            entity.Property(m => m.Reason).HasMaxLength(240);
+            entity.Property(m => m.OperatorName).HasMaxLength(120).IsRequired();
+            entity.HasOne(m => m.CashSession)
+                .WithMany(s => s.Movements)
+                .HasForeignKey(m => m.CashSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SaleReturn>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Reason).HasMaxLength(240).IsRequired();
+            entity.Property(r => r.OperatorName).HasMaxLength(120).IsRequired();
+            entity.Property(r => r.TotalRefundAmount).HasPrecision(18, 2);
+            entity.HasOne(r => r.Sale)
+                .WithMany(s => s.Returns)
+                .HasForeignKey(r => r.SaleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SaleReturnItem>(entity =>
+        {
+            entity.HasKey(i => i.Id);
+            entity.Property(i => i.Barcode).HasMaxLength(64).IsRequired();
+            entity.Property(i => i.ProductName).HasMaxLength(160).IsRequired();
+            entity.Property(i => i.Quantity).HasPrecision(18, 3);
+            entity.Property(i => i.UnitPrice).HasPrecision(18, 2);
+            entity.Property(i => i.RefundAmount).HasPrecision(18, 2);
+            entity.HasOne(i => i.SaleReturn)
+                .WithMany(r => r.Items)
+                .HasForeignKey(i => i.SaleReturnId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(i => i.Product)
+                .WithMany()
+                .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CustomerLoyalty>(entity =>
+        {
+            entity.HasKey(cl => cl.Id);
+            entity.HasIndex(cl => cl.CustomerId).IsUnique();
+            entity.HasOne(cl => cl.Customer)
+                .WithMany()
+                .HasForeignKey(cl => cl.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LoyaltyTransaction>(entity =>
+        {
+            entity.HasKey(lt => lt.Id);
+            entity.HasIndex(lt => lt.CreatedAt);
+            entity.Property(lt => lt.Type).HasMaxLength(20).IsRequired();
+            entity.Property(lt => lt.Notes).HasMaxLength(240);
+            entity.HasOne(lt => lt.CustomerLoyalty)
+                .WithMany(cl => cl.Transactions)
+                .HasForeignKey(lt => lt.CustomerLoyaltyId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(lt => lt.Sale)
+                .WithMany()
+                .HasForeignKey(lt => lt.SaleId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SellerCommission>(entity =>
+        {
+            entity.HasKey(sc => sc.Id);
+            entity.HasIndex(sc => sc.UserId).IsUnique();
+            entity.Property(sc => sc.Percentage).HasPrecision(5, 2);
+            entity.HasOne(sc => sc.User)
+                .WithMany()
+                .HasForeignKey(sc => sc.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CommissionTransaction>(entity =>
+        {
+            entity.HasKey(ct => ct.Id);
+            entity.HasIndex(ct => ct.CreatedAt);
+            entity.Property(ct => ct.SaleAmount).HasPrecision(18, 2);
+            entity.Property(ct => ct.CommissionPercentage).HasPrecision(5, 2);
+            entity.Property(ct => ct.CommissionAmount).HasPrecision(18, 2);
+            entity.HasOne(ct => ct.SellerCommission)
+                .WithMany(sc => sc.Transactions)
+                .HasForeignKey(ct => ct.SellerCommissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(ct => ct.Sale)
+                .WithMany()
+                .HasForeignKey(ct => ct.SaleId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
