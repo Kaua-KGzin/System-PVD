@@ -21,10 +21,12 @@ public sealed class CustomerService(PdvDbContext db)
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = search.Trim();
+            // Lowered on both sides so the match does not depend on the provider: LIKE is
+            // case-insensitive on SQLite and case-sensitive on PostgreSQL.
+            var term = search.Trim().ToLowerInvariant();
             query = query.Where(c =>
-                c.Name.Contains(term) ||
-                (c.Document != null && c.Document.Contains(term)));
+                c.Name.ToLower().Contains(term) ||
+                (c.Document != null && c.Document.ToLower().Contains(term)));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

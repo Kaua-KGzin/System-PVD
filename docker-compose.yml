@@ -34,6 +34,10 @@ services:
       Jwt__Issuer: archlab-api
       Jwt__Audience: archlab-client
       Jwt__ExpirationHours: "8"
+      # IANA id of the store's timezone. Reports group by calendar day and by hour, which only
+      # mean something in it; the container has no timezone of its own, so leaving this unset
+      # books an evening sale to the next day.
+      Reports__TimeZone: ${REPORTS_TIMEZONE:-America/Sao_Paulo}
       SeedAdmin__Username: ${SEED_ADMIN_USERNAME:?SEED_ADMIN_USERNAME is required}
       SeedAdmin__Password: ${SEED_ADMIN_PASSWORD:?SEED_ADMIN_PASSWORD is required}
       SeedAdmin__Role: Admin

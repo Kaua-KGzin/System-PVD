@@ -2,9 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    # Branches de trabalho tambem rodam. Sem isso um branch so e compilado quando
+    # vira PR, entao commits empurrados depois do PR aberto — ou antes dele — chegam
+    # a uma decisao de merge sem nunca terem passado por build nem teste.
+    branches: [main, dev, 'claude/**', 'feat/**', 'fix/**']
   pull_request:
     branches: [main]
+  # Permite rodar sob demanda em qualquer branch, pela aba Actions.
+  workflow_dispatch:
 
 jobs:
   test:

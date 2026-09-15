@@ -32,7 +32,11 @@ export default function Sidebar() {
   const [passwordSuccess, setPasswordSuccess] = useState(false)
 
   const handleLogout = async () => {
-    const refreshToken = localStorage.getItem('refreshToken')
+    // The refresh token is held by the auth store, which persists under its own sessionStorage
+    // key — it is never written as a loose `refreshToken` entry anywhere. Reading it from any
+    // other place finds nothing, skips the revocation call, and leaves a logged-out session's
+    // token valid on the server until it expires.
+    const { refreshToken } = useAuthStore.getState()
     if (refreshToken) await api.post('/auth/logout', { refreshToken }).catch(() => {})
     logout()
   }
